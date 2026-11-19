@@ -55,7 +55,7 @@ First: snap to the highest point within ±0.75 s (felt like an offset to the rig
 
 ## Raw signal view (2026-11-19)
 
-Researchers wanted to inspect the original data behind a doubtful breath. The detail plot has a Filtered/Raw **switch** (not an overlay: raw has an offset and drift, so one shared scale would squash the breaths, and two scales in one plot mislead). "Raw" means the **original samples at the file's sampling rate**, not the 20 Hz average, so nothing is hidden. Only the detail plot switches; the overview stays filtered so navigation looks the same. It is a view only and not saved with the session: results never depend on it, so `VERSION` was not bumped.
+Researchers wanted to inspect the original data behind a doubtful breath. The detail plot has a Filtered/Raw **switch** (not an overlay: raw has an offset and drift, so one shared scale would squash the breaths, and two scales in one plot mislead). "Raw" means the **original samples at the file's sampling rate**, not the 20 Hz average, so nothing is hidden. Only the detail plot switches; the overview stays filtered so navigation looks the same. It is a view only and not saved with the session: results never depend on it. `VERSION` went to 1.1.0 as a feature release; results are identical to 1.0.0.
 
 ## Name
 
