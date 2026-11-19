@@ -7,6 +7,7 @@ Breathanalyser is a **single self-contained HTML file** (`index.html`): markup, 
 ```
 index.html                 the whole app
 README.md                  user guide for researchers
+LICENSE                    MIT
 CLAUDE.md                  entry point for Claude Code
 docs/
   architecture.md          this file

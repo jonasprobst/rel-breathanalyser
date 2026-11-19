@@ -113,3 +113,7 @@ Download [`index.html`](index.html) from this repository and open it in your bro
 ## Questions, bugs, ideas
 
 Open an issue in this repository. Developer documentation is in [`docs/`](docs/).
+
+## License
+
+[MIT](LICENSE) © 2026 Jonas Probst

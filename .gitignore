@@ -6,5 +6,18 @@
 *_session.json
 breath_results_combined.csv
 
+# macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+.TemporaryItems
+.DocumentRevisions-V100
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+Icon?
+
 node_modules/
