@@ -29,6 +29,10 @@ if git -C "$tmp" diff --cached --quiet; then
   echo "gh-pages is already up to date."
   exit 0
 fi
-git -C "$tmp" commit -m "Deploy index.html from main@${src_commit}"
+if [ -n "${DEPLOY_COMMIT_TRAILERS:-}" ]; then   # optional extra lines, e.g. co-author trailers
+  git -C "$tmp" commit -m "Deploy index.html from main@${src_commit}" -m "$DEPLOY_COMMIT_TRAILERS"
+else
+  git -C "$tmp" commit -m "Deploy index.html from main@${src_commit}"
+fi
 git -C "$tmp" push origin gh-pages
 echo "Published. Site: https://jonasprobst.github.io/rel-breathanalyser/"
