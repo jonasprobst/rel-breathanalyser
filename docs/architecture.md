@@ -35,6 +35,7 @@ Everything here is a plain function and can run in Node (the test extracts this 
 | `parseWav(buf)` | Parses RIFF/WAVE headers (incl. WAVE_FORMAT_EXTENSIBLE, odd chunk padding, broken/oversized data-chunk sizes). Returns `{fmt, data, dv}` |
 | `sampleReader(fmt, dv)` | Returns a reader for 8/16/24/32-bit PCM or 32/64-bit float |
 | `readChannelDown(w, ch, f)` | Reads one channel and block-averages it to `f` Hz (20 Hz in the UI) |
+| `readChannelRange(w, ch, t0, t1, nb)` | Reads one channel at the original rate for a time span, for the raw view. Returns `{t, lo, hi}`: every sample (`lo === hi`) if there are ≤ `2·nb`, else min/max of `nb` bins |
 | `biquad`, `lfilter`, `filtfilt` | 2nd-order RBJ high/low-pass, zero-phase forward–backward filtering with odd-reflection padding (like SciPy's `filtfilt`) |
 | `analyse(y, f, P)` | Full detection pipeline (see `algorithm.md`). Returns `D = {f, n, s0, z, amp, auto, cand, dur}` |
 | `mergeEdits(D, E)` | Combines automatic breaths with manual edits → final breath list `B` |
@@ -56,6 +57,7 @@ Global state (plain variables, no framework):
 | `view`, `span` | Detail plot window (start, length in s) |
 | `ov0`, `ov1` | Overview/rate graph zoom range |
 | `blind` | Blind review on/off (hides phases and results everywhere) |
+| `showRaw`, `rawC` | Detail plot shows raw instead of filtered signal (not persisted); cache of the last raw window read |
 | `horseId` | Subject ID (variable name is historical; the UI and exports say "subject") |
 
 Flow:
@@ -74,6 +76,8 @@ D + E → mergeEdits → B          (refresh(): after every edit or phase change
 Three `<canvas>` elements drawn with the 2D API. `setup(c)` sizes each canvas for the device pixel ratio. Its CSS height comes from the original `height` attribute, stored in `data-h`. **Don't read `c.height` back as the CSS height**: that was a bug that made graphs grow and crop on high-DPI screens. A `ResizeObserver` on `#app` redraws when the container changes width (e.g. side panels).
 
 Shared x-axis margins: `L = 56`, `R = 10` px. Every mouse→time conversion uses the same margins.
+
+Raw view (`showRaw`): `drawDetail()` draws `readChannelRange(W, chan, …)` for the visible window instead of `D.z`, with one bin per plot pixel, and puts the marks on that trace. It is display only: detection, click snapping, statistics and exports keep using `D.z`. The result is cached in `rawC` (keyed by file, channel, window and width) because the detail plot redraws on every mouse move while dragging.
 
 Mouse interaction on the detail plot: `mousedown` → `mousemove` → `mouseup`. A movement of more than 5 px is a drag (creates a phase if ≥ 1 s and blind review is off). Otherwise it's a click and goes to `detailClick`.
 
