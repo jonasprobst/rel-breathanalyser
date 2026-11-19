@@ -1,0 +1,10 @@
+# Never commit recordings or exports
+*.wav
+*.WAV
+*_results.csv
+*_breaths.csv
+*_session.json
+breath_results_combined.csv
+
+.DS_Store
+node_modules/
