@@ -77,6 +77,7 @@
           <button id="detIn" title="Zoom in (show less time)">+</button>
           <button id="prevU" title="P">◀ unclear</button>
           <button id="nextU" class="pri" title="N">Next unclear ▶</button>
+          <button id="rawBtn" title="Switch between the filtered signal (used for detection) and the raw signal: the original samples of the file, unfiltered. Key: R">Signal: filtered</button>
           <span id="viewInfo" class="muted"></span>
         </div>
         <div class="legend">
@@ -88,7 +89,7 @@
         </div>
       </div>
       <canvas id="det" height="320"></canvas>
-      <div class="muted" style="margin-top:6px">Click a mark to remove it (click again to restore). Click a ▽ to count it. Click anywhere else to add a breath; it snaps to a high within ±0.25 s if there is one (hold Alt/Option to place it exactly). Drag across the plot to create a phase. Mouse wheel scrolls; Ctrl/⌘ + wheel zooms.</div>
+      <div class="muted" style="margin-top:6px">Click a mark to remove it (click again to restore). Click a ▽ to count it. Click anywhere else to add a breath; it snaps to a high within ±0.25 s if there is one (hold Alt/Option to place it exactly). Drag across the plot to create a phase. Mouse wheel scrolls; Ctrl/⌘ + wheel zooms. “Signal” (or the R key) switches to the raw, unfiltered recording to inspect the original data; breaths are always detected on the filtered signal.</div>
     </div>
 
     <div class="card">
@@ -184,6 +185,21 @@ function readChannelDown(w,ch,f){
   }
   return {y,f};
 }
+// read one channel at the original sampling rate for the time span [t0,t1] s, for display.
+// Returns {t,lo,hi}: every sample (lo===hi) if there are at most 2*nb of them, otherwise the min/max of nb equal bins.
+function readChannelRange(w,ch,t0,t1,nb){
+  const {fmt,data,dv}=w,bps=fmt.bits/8,frame=bps*fmt.ch,rd=sampleReader(fmt,dv),o=data.off+ch*bps;
+  const a=Math.max(0,Math.floor(t0*fmt.fs)),b=Math.min(fmt.frames,Math.ceil(t1*fmt.fs)+1),m=Math.max(0,b-a);
+  nb=Math.max(1,Math.floor(nb));
+  if(m<=2*nb){const t=new Float64Array(m),v=new Float64Array(m);for(let j=0;j<m;j++){t[j]=(a+j)/fmt.fs;v[j]=rd(o+(a+j)*frame);}return {t,lo:v,hi:v};}
+  const t=new Float64Array(nb),lo=new Float64Array(nb),hi=new Float64Array(nb);
+  for(let k=0;k<nb;k++){
+    const j0=a+Math.floor(k*m/nb),j1=a+Math.floor((k+1)*m/nb);let u=Infinity,v=-Infinity;
+    for(let j=j0;j<j1;j++){const x=rd(o+j*frame);if(x<u)u=x;if(x>v)v=x;}
+    t[k]=(j0+j1-1)/2/fmt.fs;lo[k]=u;hi[k]=v;
+  }
+  return {t,lo,hi};
+}
 function biquad(type,fc,fs){
   const Q=Math.SQRT1_2,w=2*Math.PI*fc/fs,c=Math.cos(w),s=Math.sin(w),al=s/(2*Q),a0=1+al;
   let b0,b1,b2;
@@ -266,7 +282,7 @@ const DEF={skip:0,hp:0.05,lp:1.0,thr:0.35,minGap:1.2,ampWin:30,unc:0.10};
 const COLORS=['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#84cc16','#ec4899'];
 const FS=20;
 let P={...DEF},W=null,fileName='',fileSize=0,chan=0,Y=null,D=null,B=[],E={added:[],removed:[]},phases=[],view=0,span=60;
-let downloads=null,ov0=0,ov1=0,blind=false,horseId='';
+let downloads=null,ov0=0,ov1=0,blind=false,horseId='',showRaw=false,rawC={k:'',r:null};
 const VERSION='1.0.0';
 try{blind=localStorage.getItem('breathcounter:blind')==='1';}catch(e){}
 const visPhases=()=>blind?[]:phases;
@@ -391,7 +407,13 @@ let marks=[];
 function drawDetail(){
   const c=$('det'),{g,w,h}=setup(c),B0=20,t0=view,t1=view+span,X=t=>L+(t-t0)/span*(w-L-R);
   const i0=Math.max(0,Math.floor(t0*D.f)),i1=Math.min(D.n-1,Math.ceil(t1*D.f));
-  let lo=Infinity,hi=-Infinity;for(let i=i0;i<=i1;i++){if(D.z[i]<lo)lo=D.z[i];if(D.z[i]>hi)hi=D.z[i];}
+  // raw view: original samples of the visible window (min/max per pixel when dense), cached while the window stays the same
+  let raw=null;
+  if(showRaw&&W){const nb=Math.max(1,Math.floor(w-L-R)),k=[fileName,fileSize,chan,t0,t1,nb].join('|');if(rawC.k!==k)rawC={k,r:readChannelRange(W,chan,t0,t1,nb)};raw=rawC.r;}
+  let lo=Infinity,hi=-Infinity;
+  if(raw)for(let k=0;k<raw.t.length;k++){if(raw.lo[k]<lo)lo=raw.lo[k];if(raw.hi[k]>hi)hi=raw.hi[k];}
+  else for(let i=i0;i<=i1;i++){if(D.z[i]<lo)lo=D.z[i];if(D.z[i]>hi)hi=D.z[i];}
+  if(!isFinite(lo)){lo=0;hi=0;}
   if(!(hi>lo)){lo-=1;hi+=1;}const pad=(hi-lo)*.12;lo-=pad;hi+=pad*1.6;
   const Yp=v=>4+(hi-v)/(hi-lo)*(h-B0-8);
   visPhases().forEach((p,k)=>{if(p.b<t0||p.a>t1)return;g.fillStyle=COLORS[k%COLORS.length]+'14';g.fillRect(X(Math.max(p.a,t0)),2,X(Math.min(p.b,t1))-X(Math.max(p.a,t0)),h-B0-2);
@@ -400,8 +422,17 @@ function drawDetail(){
     if(p.a>=t0)g.fillText(p.name+' ▸',X(p.a)+4,14);});
   if(D.s0>0&&t0<D.s0/D.f){g.fillStyle='#00000010';g.fillRect(X(t0),2,X(Math.min(t1,D.s0/D.f))-X(t0),h-B0-2);}
   xAxis(g,w,h,t0,t1,B0);
-  g.strokeStyle='#1f2937';g.lineWidth=1.3;g.beginPath();for(let i=i0;i<=i1;i++){const x=X(i/D.f),yv=Yp(D.z[i]);i===i0?g.moveTo(x,yv):g.lineTo(x,yv);}g.stroke();
-  marks=[];const zAt=t=>D.z[Math.max(0,Math.min(D.n-1,Math.round(t*D.f)))];
+  g.strokeStyle='#1f2937';g.lineWidth=1.3;g.beginPath();
+  if(raw){g.lineWidth=1;const same=raw.lo===raw.hi;for(let k=0;k<raw.t.length;k++){const x=X(raw.t[k]),yv=Yp(raw.hi[k]);k?g.lineTo(x,yv):g.moveTo(x,yv);if(!same)g.lineTo(x,Yp(raw.lo[k]));}}
+  else for(let i=i0;i<=i1;i++){const x=X(i/D.f),yv=Yp(D.z[i]);i===i0?g.moveTo(x,yv):g.lineTo(x,yv);}
+  g.stroke();
+  if(raw){g.fillStyle='#6b7280';g.font='12px system-ui';g.textAlign='right';g.fillText(`raw signal · ${W.fmt.fs} Hz · unfiltered`,w-R-4,h-B0-8);}
+  // height at which a mark is drawn: the visible trace at that time (raw: its highest point within ±0.15 s)
+  marks=[];const zAt=t=>{
+    if(!raw)return D.z[Math.max(0,Math.min(D.n-1,Math.round(t*D.f)))];
+    let v=-Infinity,bd=Infinity,bv=lo;
+    for(let k=0;k<raw.t.length;k++){const d=Math.abs(raw.t[k]-t);if(d<=0.15&&raw.hi[k]>v)v=raw.hi[k];if(d<bd){bd=d;bv=raw.hi[k];}}
+    return isFinite(v)?v:bv;};
   const tri=(t,col,fill)=>{const x=X(t),yv=Yp(zAt(t))-6;g.beginPath();g.moveTo(x-6,yv-10);g.lineTo(x+6,yv-10);g.lineTo(x,yv);g.closePath();if(fill){g.fillStyle=col;g.fill();}else{g.strokeStyle=col;g.lineWidth=1.6;g.stroke();}};
   const unclear=p=>p.r<P.thr+P.unc;
   for(const p of D.cand)if(p.t>=t0&&p.t<=t1&&!B.some(b=>Math.abs(b.t-p.t)<0.3)){tri(p.t,'#d97706',false);marks.push({t:p.t,kind:'cand'});}
@@ -544,6 +575,8 @@ document.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)loadFi
 $('prev').onclick=()=>setView(view-span*.8);
 $('next').onclick=()=>setView(view+span*.8);
 $('span').onchange=e=>setSpan(+e.target.value);
+function setRaw(v){showRaw=v;const b=$('rawBtn');b.textContent='Signal: '+(v?'raw':'filtered');b.classList.toggle('on',v);if(D)drawDetail();}
+$('rawBtn').onclick=()=>setRaw(!showRaw);
 $('nextU').onclick=()=>jumpUnclear(1);$('prevU').onclick=()=>jumpUnclear(-1);
 $('addView').onclick=()=>addPhase(view,Math.min(D.dur,view+span));
 // detail: click edits breaths, drag creates a phase
@@ -572,7 +605,8 @@ function setSpan(s,c){if(c===undefined)c=view+span/2;const r=(c-view)/span;span=
 $('detIn').onclick=()=>setSpan(span/2);$('detOut').onclick=()=>setSpan(span*2);
 document.addEventListener('keydown',e=>{if(!D||/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))return;
   if(e.key==='ArrowRight'){setView(view+span*.8);e.preventDefault();}else if(e.key==='ArrowLeft'){setView(view-span*.8);e.preventDefault();}
-  else if(e.key==='n'||e.key==='N')jumpUnclear(1);else if(e.key==='p'||e.key==='P')jumpUnclear(-1);});
+  else if(e.key==='n'||e.key==='N')jumpUnclear(1);else if(e.key==='p'||e.key==='P')jumpUnclear(-1);
+  else if((e.key==='r'||e.key==='R')&&!e.ctrlKey&&!e.metaKey&&!e.altKey)setRaw(!showRaw);});
 function resize(){drawAll();}
 window.addEventListener('resize',resize);
 {const b=$('blindBtn');b.textContent='Blind review: '+(blind?'on':'off');b.classList.toggle('on',blind);}

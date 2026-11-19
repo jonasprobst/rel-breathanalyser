@@ -7,7 +7,7 @@ const { makeSampleWav } = require('./make-sample-wav');
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const m = html.match(/<script id="core">([\s\S]*?)<\/script>/);
 assert(m, 'core script block not found in index.html');
-const core = new Function(m[1] + '\nreturn {parseWav, readChannelDown, analyse, mergeEdits, phaseStats};')();
+const core = new Function(m[1] + '\nreturn {parseWav, readChannelDown, readChannelRange, analyse, mergeEdits, phaseStats};')();
 
 const DEF = { skip: 0, hp: 0.05, lp: 1.0, thr: 0.35, minGap: 1.2, ampWin: 30, unc: 0.10 };
 let failed = 0;
@@ -33,6 +33,25 @@ test('readChannelDown resamples to 20 Hz', () => {
   assert.strictEqual(f, 20); assert.strictEqual(y.length, 6000);
   const empty = core.readChannelDown(w, 0, 20).y;
   assert(empty.every(v => v === 0), 'empty channel should be all zeros');
+});
+
+test('readChannelRange returns the original samples when zoomed in', () => {
+  const r = core.readChannelRange(w, 2, 10, 10.5, 1000);
+  assert.strictEqual(r.t.length, 501); assert.strictEqual(r.lo, r.hi);
+  assert(Math.abs(r.t[0] - 10) < 1e-9 && Math.abs(r.t[500] - 10.5) < 1e-9);
+  const dv = new DataView(ab), frame = 6;
+  for (const j of [0, 123, 500]) assert.strictEqual(r.lo[j], dv.getInt16(w.data.off + (10000 + j) * frame + 4, true));
+});
+
+test('readChannelRange returns a min/max envelope when zoomed out', () => {
+  const r = core.readChannelRange(w, 2, 0, 300, 600);
+  assert.strictEqual(r.t.length, 600);
+  let lo = Infinity, hi = -Infinity;
+  const dv = new DataView(ab);
+  for (let j = 0; j < w.fmt.frames; j++) { const v = dv.getInt16(w.data.off + j * 6 + 4, true); if (v < lo) lo = v; if (v > hi) hi = v; }
+  assert.strictEqual(Math.min(...r.lo), lo); assert.strictEqual(Math.max(...r.hi), hi);
+  for (let k = 0; k < 600; k++) assert(r.lo[k] <= r.hi[k] && r.t[k] >= 0 && r.t[k] <= 300);
+  assert.strictEqual(core.readChannelRange(w, 2, 400, 500, 600).t.length, 0, 'outside the recording');
 });
 
 const D = core.analyse(y, f, DEF);
