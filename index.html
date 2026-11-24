@@ -27,6 +27,10 @@
   #det{cursor:pointer}
   .muted{color:var(--mute)}
   .legend span{margin-right:14px;white-space:nowrap}
+  .ic{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;vertical-align:-3px}
+  button.icb{padding:4px 7px;line-height:1}
+  #tbl tr[data-k]{cursor:pointer}
+  #tbl tr.act td{background:#eff6ff}
   button.danger{color:#b91c1c}
   button.danger.on{background:#b91c1c;color:#fff;border-color:#b91c1c}
   .warn{color:#b91c1c;font-size:13px;margin-right:6px}
@@ -71,7 +75,7 @@
     <div class="card">
       <div class="row" style="justify-content:space-between">
         <b>Overview</b>
-        <div class="row" style="gap:6px"><button id="ovOut" title="Zoom out">−</button><button id="ovIn" title="Zoom in">+</button><button id="ovFit" title="Show whole recording">Fit</button></div>
+        <div class="row" style="gap:6px"><button id="ovOut" class="icb" title="Zoom out" aria-label="Zoom out"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10 10l4.2 4.2M4.5 6.5h4"/></svg></button><button id="ovIn" class="icb" title="Zoom in" aria-label="Zoom in"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10 10l4.2 4.2M4.5 6.5h4M6.5 4.5v4"/></svg></button><button id="ovFit" title="Show whole recording">Fit</button></div>
       </div>
       <canvas id="ov" height="110"></canvas>
       <div class="muted" style="margin-top:6px">Breath rate: dots = 60 / interval between breaths, line = breaths counted in a rolling 60 s, dashes = phase average</div>
@@ -84,14 +88,11 @@
         <div class="row">
           <button id="prev" title="Left arrow">◀</button>
           <button id="next" title="Right arrow">▶</button>
-          <button id="detOut" title="Zoom out (show more time)">−</button>
-          <label>Window <select id="span"><option>10</option><option>20</option><option>30</option><option selected>60</option><option>120</option><option>300</option><option>600</option></select> s</label>
-          <button id="detIn" title="Zoom in (show less time)">+</button>
-          <button id="prevU" title="P">◀ unclear</button>
-          <button id="nextU" class="pri" title="N">Next unclear ▶</button>
         </div>
-        <div class="row">
-          <button id="rawBtn" title="Switch between the filtered signal (used for detection) and the raw signal: the original samples of the file, unfiltered. Key: R">Signal: filtered</button>
+        <div class="row" style="gap:6px">
+          <button id="detOut" class="icb" title="Zoom out (show more time)" aria-label="Zoom out"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10 10l4.2 4.2M4.5 6.5h4"/></svg></button>
+          <label>Window <select id="span"><option>10</option><option>20</option><option>30</option><option selected>60</option><option>120</option><option>300</option><option>600</option></select> s</label>
+          <button id="detIn" class="icb" title="Zoom in (show less time)" aria-label="Zoom in"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10 10l4.2 4.2M4.5 6.5h4M6.5 4.5v4"/></svg></button>
         </div>
       </div>
       <div class="row" style="margin-bottom:6px">
@@ -109,10 +110,6 @@
     <div class="card">
       <div class="row" style="justify-content:space-between;margin-bottom:6px">
         <b>Phases and results</b>
-        <div class="row" style="gap:6px">
-          <button id="expSes">Save session</button>
-          <label style="color:var(--ink)"><input type="file" id="loadSes" accept=".json" style="display:none"><span style="border:1px solid var(--line);border-radius:6px;padding:4px 10px;cursor:pointer;background:#fff">Load session</span></label>
-        </div>
       </div>
       <div id="blindMsg">Blind review is on: phases and results are hidden. Validate the breaths, then turn blind review off in <a href="#settings" id="toSettings">Settings</a> to see the results.</div>
       <div id="resBody">
@@ -127,7 +124,10 @@
         </div>
       </div>
       <div class="row" style="gap:6px;margin-top:14px;padding-top:10px;border-top:1px solid var(--line)">
-        <button id="clrSes" class="danger" title="Delete everything saved for this file in this browser">Clear session</button>
+        <span class="muted" style="font-size:12.5px;margin-right:4px">Session</span>
+        <button id="expSes" title="Save phases, breath edits, settings and channel as a .json file">Save</button>
+        <label class="filebtn" title="Load a saved .json session file"><input type="file" id="loadSes" accept=".json" style="display:none">Load</label>
+        <button id="clrSes" class="danger" title="Delete everything saved for this file in this browser">Clear</button>
         <span id="clrConfirm" style="display:none"><span class="warn">Deletes all phases, breath edits, Subject ID and settings for this file. This can't be undone.</span>
           <button id="clrYes" class="danger on">Delete everything</button> <button id="clrNo">Cancel</button></span>
       </div>
@@ -139,6 +139,8 @@
   <div class="card">
     <details id="settings">
       <summary>Settings</summary>
+      <h3>Display</h3>
+      <label style="color:var(--ink)" title="Show the original samples of the file, unfiltered, in the detail plot. Breaths are always detected on the filtered signal. Key: R"><input type="checkbox" id="rawChk"> Raw signal in the detail plot (unfiltered, original samples; key R)</label>
       <h3>Review</h3>
       <label style="color:var(--ink)" title="Hide phases and results while validating breaths, so the review is not influenced by knowing which stretch belongs to which condition"><input type="checkbox" id="blind"> Blind review: hide phases and results while validating breaths</label>
       <div id="detSet">
@@ -303,7 +305,7 @@ const DEF={skip:0,hp:0.05,lp:1.0,thr:0.35,minGap:1.2,ampWin:30,unc:0.10};
 const COLORS=['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#84cc16','#ec4899'];
 const FS=20;
 let P={...DEF},W=null,fileName='',fileSize=0,chan=0,Y=null,D=null,B=[],E={added:[],removed:[]},phases=[],view=0,span=60;
-let downloads=null,ov0=0,ov1=0,blind=false,horseId='',showRaw=false,rawC={k:'',r:null},ys=null;
+let actP=null,downloads=null,ov0=0,ov1=0,blind=false,horseId='',showRaw=false,rawC={k:'',r:null},ys=null;
 const VERSION='1.2.0';
 try{blind=localStorage.getItem('breathcounter:blind')==='1';}catch(e){}
 const visPhases=()=>blind?[]:phases;
@@ -501,19 +503,6 @@ function detailClick(e){
 function setView(v,refit){if(refit)ys=null;view=Math.max(0,Math.min(Math.max(0,D.dur-span),v));
   const w=ov1-ov0;if(w<D.dur&&(view<ov0||view+span>ov1)){if(span>w){ov0=Math.max(0,view-span*.25);ov1=Math.min(D.dur,ov0+span*1.5);}else{let a=view+span/2-w/2;a=Math.max(0,Math.min(D.dur-w,a));ov0=a;ov1=a+w;}}
   drawAll();}
-function unclearTimes(){
-  const u=D.auto.filter(p=>p.r<P.thr+P.unc&&!E.removed.some(t=>Math.abs(t-p.t)<0.3)).map(p=>p.t)
-    .concat(D.cand.filter(p=>!B.some(b=>Math.abs(b.t-p.t)<0.3)&&!E.removed.some(t=>Math.abs(t-p.t)<0.3)).map(p=>p.t));
-  return u.sort((a,b)=>a-b);
-}
-function jumpUnclear(dir){
-  const u=unclearTimes(),c=view+span/2;if(!u.length)return;
-  const visibleEnd=view+span*0.9,visibleStart=view+span*0.1;
-  let t=dir>0?u.find(v=>v>visibleEnd):[...u].reverse().find(v=>v<visibleStart);
-  if(t===undefined)t=dir>0?u[0]:u[u.length-1];
-  setView(t-span/2,true);
-}
-
 // ---- phases + table ----
 function addPhase(a,b){let n=phases.length+1;while(phases.some(p=>p.name==='Phase '+n))n++;
   phases.push({name:'Phase '+n,a:+a.toFixed(1),b:+b.toFixed(1)});phases.sort((p,q)=>p.a-q.a);refresh();}
@@ -531,7 +520,7 @@ function renderTable(){
   for(const r of resultRows()){
     if(r.whole)rows.push(`<tr><td></td><td class="l"><i>Whole recording</i></td>${stat(r)}<td>${fmtT(r.a)}</td><td>${fmtT(r.b)}</td>${tail(r)}<td></td></tr>`);
     else{const k=r.k,p=phases[k];
-      rows.push(`<tr data-k="${k}"><td><span class="sw" style="background:${COLORS[k%COLORS.length]}"></span></td><td class="l"><input type="text" data-f="name" value="${p.name.replace(/"/g,'&quot;')}"></td>${stat(r)}<td><input type="text" data-f="a" value="${fmtT(p.a)}" style="width:64px"></td><td><input type="text" data-f="b" value="${fmtT(p.b)}" style="width:64px"></td>${tail(r)}<td style="white-space:nowrap"><button data-act="go" title="Show in detail plot">View</button> <button data-act="del" title="Delete phase">✕</button></td></tr>`);}
+      rows.push(`<tr data-k="${k}"${p===actP?' class="act"':''}><td><span class="sw" style="background:${COLORS[k%COLORS.length]}"></span></td><td class="l"><input type="text" data-f="name" value="${p.name.replace(/"/g,'&quot;')}"></td>${stat(r)}<td><input type="text" data-f="a" value="${fmtT(p.a)}" style="width:64px"></td><td><input type="text" data-f="b" value="${fmtT(p.b)}" style="width:64px"></td>${tail(r)}<td style="white-space:nowrap"><button data-act="del" class="icb" title="Delete phase" aria-label="Delete phase"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4h11M6 4V2.5h4V4M4 4l.7 9.5h6.6L12 4M6.8 6.5v4.5M9.2 6.5v4.5"/></svg></button></td></tr>`);}
   }
   if(!phases.length)rows.push(`<tr><td></td><td class="l muted" colspan="12">No phases yet. Drag across the overview to mark one, or use “+ Phase from current window”. Rename phases and fine-tune start and end times here.</td></tr>`);
   $('tbl').innerHTML=rows.join('');
@@ -539,8 +528,12 @@ function renderTable(){
 $('tbl').addEventListener('change',e=>{const tr=e.target.closest('tr[data-k]');if(!tr)return;const p=phases[+tr.dataset.k],f=e.target.dataset.f;
   if(f==='name')p.name=e.target.value||p.name;else{const v=parseT(e.target.value);if(isFinite(v))p[f]=Math.max(0,Math.min(D.dur,v));if(p.a>p.b)[p.a,p.b]=[p.b,p.a];}
   phases.sort((x,y)=>x.a-y.a);refresh();});
-$('tbl').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const k=+b.closest('tr').dataset.k,p=phases[k];
-  if(b.dataset.act==='del'){phases.splice(k,1);refresh();}else if(b.dataset.act==='go'){setView(p.a-2,true);}});
+// clicking (or tabbing into) a phase row shows that phase in the detail plot; the bin icon deletes it
+function showPhase(p){if(actP!==p){actP=p;document.querySelectorAll('#tbl tr[data-k]').forEach(tr=>tr.classList.toggle('act',phases[+tr.dataset.k]===p));setView(p.a-2,true);}}
+$('tbl').addEventListener('click',e=>{const tr=e.target.closest('tr[data-k]');if(!tr)return;const k=+tr.dataset.k,p=phases[k],b=e.target.closest('button');
+  if(b&&b.dataset.act==='del'){phases.splice(k,1);if(actP===p)actP=null;refresh();return;}
+  showPhase(p);});
+$('tbl').addEventListener('focusin',e=>{const tr=e.target.closest('tr[data-k]');if(tr&&!e.target.closest('button'))showPhase(phases[+tr.dataset.k]);});
 
 // ---- export ----
 const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
@@ -599,9 +592,8 @@ document.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)loadFi
 $('prev').onclick=()=>setView(view-span*.8);
 $('next').onclick=()=>setView(view+span*.8);
 $('span').onchange=e=>setSpan(+e.target.value);
-function setRaw(v){showRaw=v;ys=null;const b=$('rawBtn');b.textContent='Signal: '+(v?'raw':'filtered');b.classList.toggle('on',v);if(D)drawDetail();}
-$('rawBtn').onclick=()=>setRaw(!showRaw);
-$('nextU').onclick=()=>jumpUnclear(1);$('prevU').onclick=()=>jumpUnclear(-1);
+function setRaw(v){showRaw=v;ys=null;$('rawChk').checked=v;if(D)drawDetail();}
+$('rawChk').onchange=e=>setRaw(e.target.checked);
 $('addView').onclick=()=>addPhase(view,Math.min(D.dur,view+span));
 // detail: click edits breaths, drag creates a phase
 let ddrag=null;
@@ -629,7 +621,6 @@ function setSpan(s,c){if(c===undefined)c=view+span/2;const r=(c-view)/span;span=
 $('detIn').onclick=()=>setSpan(span/2);$('detOut').onclick=()=>setSpan(span*2);
 document.addEventListener('keydown',e=>{if(!D||/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))return;
   if(e.key==='ArrowRight'){setView(view+span*.8);e.preventDefault();}else if(e.key==='ArrowLeft'){setView(view-span*.8);e.preventDefault();}
-  else if(e.key==='n'||e.key==='N')jumpUnclear(1);else if(e.key==='p'||e.key==='P')jumpUnclear(-1);
   else if((e.key==='r'||e.key==='R')&&!e.ctrlKey&&!e.metaKey&&!e.altKey)setRaw(!showRaw);});
 function resize(){drawAll();}
 window.addEventListener('resize',resize);

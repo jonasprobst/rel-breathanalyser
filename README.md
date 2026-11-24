@@ -15,26 +15,26 @@ It runs entirely in your web browser. Recordings are **not uploaded** anywhere; 
 1. **Open the app** and choose your `.wav` recording in the *Recording* section at the top (or drag it onto the page).
 2. **Check the channel.** Multi-channel files show a channel selector next to the file name. The app remembers the last channel you used.
 3. **Validate the breaths** in the detail plot (middle):
-   - Press **Next unclear ▶** (or the `N` key) to jump to the next doubtful breath.
+   - Scroll through the recording (mouse wheel, ← → keys or ◀ ▶) and look closely at the **orange** marks: these are the doubtful ones. The *Unclear* column in the results table shows how many each phase has.
    - **Click a mark** to remove a wrong breath (click again to restore it).
    - **Click a hollow ▽** to count a breath the detector was unsure about.
    - **Click anywhere else** to add a missed breath. It snaps to a peak within ±0.25 s; hold **Alt/Option** to place it exactly.
 4. **Mark your phases** by dragging across the overview (top) or the detail plot. Rename them and fine-tune start/end times in the table at the bottom (type `m:ss` or seconds).
 5. **Export:** *Export results CSV* (one row per phase) and, if needed, *Export breaths CSV* (one row per breath).
-6. **Save session** to keep your edits and phases as a `.json` file. *Load session* restores them later or on another computer.
+6. **Save the session** (*Session → Save*, at the bottom of *Phases and results*) to keep your edits and phases as a `.json` file. *Load* restores them later or on another computer.
 
-To start over on a file, click **Clear session** (below the export buttons) and confirm with *Delete everything*. This removes all phases, added and removed breaths, the Subject ID and the detection settings saved for that file in this browser. It can't be undone, except by loading a session file you saved before.
+To start over on a file, click **Session → Clear** and confirm with *Delete everything*. This removes all phases, added and removed breaths, the Subject ID and the detection settings saved for that file in this browser. It can't be undone, except by loading a session file you saved before.
 
 ## The screen
 
 | Area | What it shows | What you can do |
 |---|---|---|
 | **Recording** | File name, number of channels, sampling rate, duration | Choose or drop a file · pick the channel |
-| **Overview** | The whole recording (filtered), phases as coloured bands, black box = what the detail plot shows | Drag = new phase · click = jump there · wheel = zoom · Shift + wheel = pan · −/+/Fit buttons |
+| **Overview** | The whole recording (filtered), phases as coloured bands, black box = what the detail plot shows | Drag = new phase · click = jump there · wheel = zoom · Shift + wheel = pan · zoom buttons (magnifiers) and *Fit* |
 | **Breath rate** | Grey dots = 60 / interval between two breaths; black line = breaths counted in a rolling 60 s; dashed = phase average | Click = jump there |
-| **Detail** | The signal with every detected breath (filtered, or raw: see below), and, small in the top-right corner, the breath rate of the visible window (e.g. *16.0 breaths/min*) | Click to edit breaths, drag to create a phase · wheel = scroll · Ctrl/⌘ + wheel = zoom · ← → keys · **Signal** button or `R` = filtered/raw |
-| **Phases and results** | One row per phase plus the whole recording | Rename, edit times, view, delete, export |
-| **Settings** (bottom) | Blind review and detection settings | Click *Settings* to open |
+| **Detail** | The signal with every detected breath (filtered, or raw: see below), and, small in the top-right corner, the breath rate of the visible window (e.g. *16.0 breaths/min*) | Click to edit breaths, drag to create a phase · wheel = scroll · Ctrl/⌘ + wheel = zoom · ← → keys or ◀ ▶ · zoom buttons (magnifiers) and *Window* length · `R` = filtered/raw |
+| **Phases and results** | One row per phase plus the whole recording | Click a phase to show it in the detail plot · rename, edit times · bin icon = delete · export · *Session*: save, load, clear |
+| **Settings** (bottom) | Raw signal, blind review and detection settings | Click *Settings* to open |
 
 The app's version is shown at the bottom of the page.
 
@@ -52,11 +52,11 @@ The colours are chosen to stay distinguishable for colour-blind viewers.
 
 ### Height scale of the detail plot
 
-The vertical scale stays steady while you scroll (wheel, ← → keys, ◀ ▶), so the trace doesn't jump. It only grows when something would otherwise be cut off, e.g. a large spike scrolling into view; the signal is never cut. It re-fits to exactly what is visible when you zoom, when you jump somewhere (*Next unclear*, clicking the overview or rate graph, *View* on a phase) and when you switch between filtered and raw. A large spike makes the breaths around it look smaller; zoom in or jump on to see them full size again.
+The vertical scale stays steady while you scroll (wheel, ← → keys, ◀ ▶), so the trace doesn't jump. It only grows when something would otherwise be cut off, e.g. a large spike scrolling into view; the signal is never cut. It re-fits to exactly what is visible when you zoom, when you jump somewhere (clicking the overview or rate graph, or a phase in the table) and when you switch between filtered and raw. A large spike makes the breaths around it look smaller; zoom in or jump on to see them full size again.
 
 ### Filtered or raw signal
 
-The detail plot normally shows the **filtered** signal: slow drift and fast noise are removed, and this is the signal the breaths are detected on. Press the **Signal** button (or the `R` key) to see the **raw** signal instead: the original samples of the selected channel, exactly as stored in the file, at the full sampling rate and without any filtering or averaging. Use it when you doubt a breath and want to see what the recording really looked like, e.g. to tell a movement spike or a drifting belt from a breath.
+The detail plot normally shows the **filtered** signal: slow drift and fast noise are removed, and this is the signal the breaths are detected on. Tick **Raw signal** under *Settings → Display* (or press the `R` key) to see the **raw** signal instead: the original samples of the selected channel, exactly as stored in the file, at the full sampling rate and without any filtering or averaging. Use it when you doubt a breath and want to see what the recording really looked like, e.g. to tell a movement spike or a drifting belt from a breath.
 
 - The breath marks stay at the same times in both views, and you can add and remove breaths in either.
 - Detection, the snapping of added breaths, results and exports always use the filtered signal. Switching the view never changes a result.

@@ -70,6 +70,11 @@ Researchers wanted to inspect the original data behind a doubtful breath. The de
 - **Less on-screen help text:** hints under/next to the plots (wheel/zoom, "shaded bands = phases", "showing …", the detail help paragraph) were removed to keep the UI clean; the README has the instructions.
 - **Window rate inside the detail plot**, small, top-right, on a faint grey pill ("16.0 breaths/min"). Preferred over a chip in the toolbar; a first, larger in-plot label covered breath marks, so the plot now reserves a thin strip at the top for it. Hidden in blind review (it is a result).
 - **Clear session** below the exports, with an inline warning rather than a browser pop-up (modals are blocked in sandboxed frames).
+- **Removed: jump to next/previous unclear** (buttons and N/P keys). Not needed; unclear breaths are still marked orange and counted per phase. Don't reintroduce without asking.
+- **Icons without dependencies:** zoom buttons are inline-SVG magnifiers (+/−), phase delete is an inline-SVG bin. No icon fonts or libraries.
+- **Phase rows are the navigation:** clicking (or tabbing into) a phase row shows it in the detail plot and highlights the row; the *View* button was removed.
+- **Session controls together** (Save / Load / Clear) at the bottom of *Phases and results*: rarely used, so out of the way.
+- **Raw/filtered switch moved into Settings → Display** (key R still works); the plot labels the raw view so it's obvious when it's on.
 - **Versioned releases:** tag `v<VERSION>`, GitHub Release with the HTML attached (offline lab PCs), and a permanent copy on the site under `v/<VERSION>/`, so a researcher can go back to the version a study was analysed with if a later version changes results.
 
 ## Name
