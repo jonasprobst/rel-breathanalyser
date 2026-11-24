@@ -27,8 +27,6 @@
   #det{cursor:pointer}
   .muted{color:var(--mute)}
   .legend span{margin-right:14px;white-space:nowrap}
-  #winRate{border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:13px;white-space:nowrap}
-  #winRate b{font-size:17px;font-variant-numeric:tabular-nums}
   button.danger{color:#b91c1c}
   button.danger.on{background:#b91c1c;color:#fff;border-color:#b91c1c}
   .warn{color:#b91c1c;font-size:13px;margin-right:6px}
@@ -93,7 +91,6 @@
           <button id="nextU" class="pri" title="N">Next unclear ▶</button>
         </div>
         <div class="row">
-          <div id="winRate" title="Breaths counted in the visible window ÷ its length in minutes"><b id="winBpm">–</b> breaths/min <span class="muted">in this window</span></div>
           <button id="rawBtn" title="Switch between the filtered signal (used for detection) and the raw signal: the original samples of the file, unfiltered. Key: R">Signal: filtered</button>
         </div>
       </div>
@@ -444,7 +441,7 @@ function drawDetail(){
   if(raw&&ys&&ys.dhi-ys.dlo>4*(vhi-vlo))ys=null;   // raw offset drifted far while scrolling: re-fit instead of squashing
   if(!ys)ys={raw:!!raw,dlo:vlo,dhi:vhi};else{ys.dlo=Math.min(ys.dlo,vlo);ys.dhi=Math.max(ys.dhi,vhi);}
   {const pad=(ys.dhi-ys.dlo)*.12;ys.lo=ys.dlo-pad;ys.hi=ys.dhi+pad*1.6;}
-  const lo=ys.lo,hi=ys.hi,Yp=v=>4+(hi-v)/(hi-lo)*(h-B0-8);
+  const TOP=16,lo=ys.lo,hi=ys.hi,Yp=v=>TOP+4+(hi-v)/(hi-lo)*(h-B0-8-TOP);
   visPhases().forEach((p,k)=>{if(p.b<t0||p.a>t1)return;g.fillStyle=COLORS[k%COLORS.length]+'14';g.fillRect(X(Math.max(p.a,t0)),2,X(Math.min(p.b,t1))-X(Math.max(p.a,t0)),h-B0-2);
     g.fillStyle=COLORS[k%COLORS.length];g.font='12px system-ui';g.textAlign='left';
     [p.a,p.b].forEach((t,j)=>{if(t>=t0&&t<=t1){g.fillRect(X(t)-1,2,2,h-B0-2);}});
@@ -463,15 +460,20 @@ function drawDetail(){
     let v=-Infinity,bd=Infinity,bv=lo;
     for(let k=0;k<raw.t.length;k++){const d=Math.abs(raw.t[k]-t);if(d<=0.15&&raw.hi[k]>v)v=raw.hi[k];if(d<bd){bd=d;bv=raw.hi[k];}}
     return isFinite(v)?v:bv;};
-  const tri=(t,col,fill)=>{const x=X(t),yv=Math.max(14,Yp(zAt(t))-6);g.beginPath();g.moveTo(x-6,yv-10);g.lineTo(x+6,yv-10);g.lineTo(x,yv);g.closePath();if(fill){g.fillStyle=col;g.fill();}else{g.strokeStyle=col;g.lineWidth=1.6;g.stroke();}};
+  const tri=(t,col,fill)=>{const x=X(t),yv=Math.max(TOP+14,Yp(zAt(t))-6);g.beginPath();g.moveTo(x-6,yv-10);g.lineTo(x+6,yv-10);g.lineTo(x,yv);g.closePath();if(fill){g.fillStyle=col;g.fill();}else{g.strokeStyle=col;g.lineWidth=1.6;g.stroke();}};
   const unclear=p=>p.r<P.thr+P.unc;
   for(const p of D.cand)if(p.t>=t0&&p.t<=t1&&!B.some(b=>Math.abs(b.t-p.t)<0.3)){tri(p.t,'#e69f00',false);marks.push({t:p.t,kind:'cand'});}
-  for(const t of E.removed)if(t>=t0&&t<=t1){const x=X(t),yv=Math.max(10,Yp(zAt(t))-12);g.strokeStyle='#9ca3af';g.lineWidth=2;g.beginPath();g.moveTo(x-5,yv-5);g.lineTo(x+5,yv+5);g.moveTo(x+5,yv-5);g.lineTo(x-5,yv+5);g.stroke();marks.push({t,kind:'removed'});}
+  for(const t of E.removed)if(t>=t0&&t<=t1){const x=X(t),yv=Math.max(TOP+10,Yp(zAt(t))-12);g.strokeStyle='#9ca3af';g.lineWidth=2;g.beginPath();g.moveTo(x-5,yv-5);g.lineTo(x+5,yv+5);g.moveTo(x+5,yv-5);g.lineTo(x-5,yv+5);g.stroke();marks.push({t,kind:'removed'});}
   for(const b of B)if(b.t>=t0&&b.t<=t1){tri(b.t,b.src==='manual'?'#009e73':unclear(b)?'#e69f00':'#0072b2',true);marks.push({t:b.t,kind:b.src});}
   if(ddrag&&ddrag.moved){g.fillStyle=blind?'#9ca3af33':'#2563eb33';g.fillRect(X(Math.min(ddrag.a,ddrag.b)),2,Math.abs(X(ddrag.b)-X(ddrag.a)),h-B0-2);
     g.fillStyle='#1f2937';g.font='12px system-ui';g.textAlign='left';g.fillText(blind?'Phases are hidden in blind review':`${fmtT(Math.min(ddrag.a,ddrag.b))} – ${fmtT(Math.max(ddrag.a,ddrag.b))}`,X(Math.min(ddrag.a,ddrag.b))+4,h-B0-8);}
   const st=phaseStats(D,B,E,P,Math.max(t0,D.s0/D.f),Math.min(t1,D.dur));
-  $('winBpm').textContent=isFinite(st.bpm)?st.bpm.toFixed(1):'–';$('winRate').style.visibility=blind?'hidden':'';   // a result: hidden in blind review
+  // breath rate of the visible window, small in the top-right strip; a result, so hidden in blind review
+  if(!blind){const num=isFinite(st.bpm)?st.bpm.toFixed(1):'–',lab=' breaths/min in this window';
+    g.textAlign='left';g.font='11.5px system-ui';const wl=g.measureText(lab).width;g.font='600 12.5px system-ui';const wn=g.measureText(num).width;
+    const x0=w-R-4-wl-wn;
+    g.fillStyle='#f3f4f6';g.beginPath();g.roundRect(x0-7,1,wn+wl+14,17,8);g.fill();
+    g.fillStyle='#374151';g.fillText(num,x0,14);g.fillStyle='#9ca3af';g.font='11.5px system-ui';g.fillText(lab,x0+wn,14);}
 }
 const SNAP=0.25;
 function detailClick(e){
