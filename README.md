@@ -101,7 +101,7 @@ all <- do.call(rbind, lapply(list.files(pattern = "_results\\.csv$"), read.csv))
 
 - Missing values are written as `NA` (e.g. *Median /min* for a phase with too few breaths, or `phase` for a breath outside any phase).
 - Text is plain ASCII: accented letters in subject IDs, file and phase names are written without accents (`ä` → `ae`, `é` → `e`, `–` → `-`). The app itself keeps the original names.
-- Comma-separated, decimal point `.`, text in double quotes. Excel also opens the files; missing values then show as `NA`.
+- Comma-separated, decimal point `.`, text in double quotes, Windows line endings (the CSV standard, RFC 4180). Excel also opens the files; missing values then show as `NA`.
 
 **`<file>_session.json`**: phases, your manual edits, settings and channel. Load it again with *Load session*.
 

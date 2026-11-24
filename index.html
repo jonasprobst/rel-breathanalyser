@@ -544,7 +544,8 @@ $('tbl').addEventListener('focusin',e=>{const tr=e.target.closest('tr[data-k]');
 // ---- export ----
 // CSV exports are written so that R's read.csv() reads them correctly with default options on any system,
 // including Windows R before 4.2 (native encoding Windows-1252, not UTF-8):
-// plain ASCII text (accents transliterated: ä→ae, é→e, …), missing values written as NA, no byte-order mark.
+// plain ASCII text (accents transliterated: ä→ae, é→e, …), missing values written as NA, no byte-order mark, CRLF line ends.
+// Based on the R manual 'R Data Import/Export' (sections 1.1.1 Encodings, 1.2 Export to text files, 2.1 Variations on read.table).
 const TRANSLIT={'ä':'ae','ö':'oe','ü':'ue','Ä':'Ae','Ö':'Oe','Ü':'Ue','ß':'ss','æ':'ae','Æ':'Ae','ø':'o','Ø':'O','œ':'oe','Œ':'Oe','µ':'u','–':'-','—':'-','‘':"'",'’':"'",'“':'"','”':'"','…':'...'};
 const ascii=v=>String(v).replace(/[^\x00-\x7f]/g,c=>TRANSLIT[c]??c.normalize('NFD').replace(/[\u0300-\u036f]/g,'')).replace(/[^\x20-\x7e]/g,'_');
 const q=v=>'"'+ascii(v).replace(/"/g,'""')+'"';
@@ -555,11 +556,12 @@ function resultLines(){
   return resultRows().map(r=>{const s=phaseStats(D,B,E,P,r.a,r.b);
     return [q(horseId),q(fileName),chan+1,q(r.name),r.a.toFixed(1),r.b.toFixed(1),s.durS.toFixed(1),s.n,n2(s.bpm),n2(s.bpmMed),n2(s.maxIv),n2(s.sdIv),s.unc,s.edits,...setCols()].join(',');});
 }
-function csvResults(){return RES_HEAD+'\n'+resultLines().join('\n')+'\n';}
+const EOL='\r\n';   // CRLF as in RFC 4180 and native on Windows; read.csv accepts it on every platform
+function csvResults(){return RES_HEAD+EOL+resultLines().join(EOL)+EOL;}
 function csvBreaths(){
   const lines=['subject_id,time_s,source,unclear,phase'];
   for(const b of B){const ph=phases.find(p=>b.t>=p.a&&b.t<p.b);lines.push([q(horseId),b.t.toFixed(2),b.src,b.src==='auto'&&b.r<P.thr+P.unc?1:0,ph?q(ph.name):'NA'].join(','));}
-  return lines.join('\n')+'\n';
+  return lines.join(EOL)+EOL;
 }
 async function offer(name,text,mime){
   const msg=$('expMsg');msg.textContent='';

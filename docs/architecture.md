@@ -120,7 +120,7 @@ The footer link *download for offline use* (`#dlSelf`) is an `<a download="breat
 
 ### CSV format
 
-Exports are written for R's `read.csv()` with default options on any platform, including Windows R < 4.2 (native Windows-1252): `q()` quotes text and passes it through `ascii()` (transliteration table `TRANSLIT`, then accent stripping via NFD, other non-ASCII → `_`); missing numbers and phases are `NA` (`n2()`); no BOM (R would put it into the first column name); LF line endings (R accepts LF and CRLF). Session JSON is not affected and keeps full Unicode.
+Exports are written for R's `read.csv()` with default options on any platform, including Windows R < 4.2 (native Windows-1252): `q()` quotes text and passes it through `ascii()` (transliteration table `TRANSLIT`, then accent stripping via NFD, other non-ASCII → `_`); missing numbers and phases are `NA` (`n2()`); no BOM; CRLF line endings (`EOL`, RFC 4180). Checked against *R Data Import/Export* (R 4.6.2): §1.1.1 Encodings ("Unless the file … is entirely in ASCII, it is usually necessary to know how it was encoded"; BOMs "cause problems"), §1.2 (RFC 4180 CSV uses commas and CRLF), §2.1 (quotes escaped by doubling when a separator is given; `NA` is the default missing value). Session JSON is not affected and keeps full Unicode.
 
 ### Version
 
