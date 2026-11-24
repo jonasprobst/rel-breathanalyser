@@ -32,7 +32,7 @@ To start over on a file, click **Clear session** (below the export buttons) and 
 | **Recording** | File name, number of channels, sampling rate, duration | Choose or drop a file · pick the channel |
 | **Overview** | The whole recording (filtered), phases as coloured bands, black box = what the detail plot shows | Drag = new phase · click = jump there · wheel = zoom · Shift + wheel = pan · −/+/Fit buttons |
 | **Breath rate** | Grey dots = 60 / interval between two breaths; black line = breaths counted in a rolling 60 s; dashed = phase average | Click = jump there |
-| **Detail** | The signal with every detected breath (filtered, or raw: see below), and, small in the top-right corner, the breath rate of the visible window (*breaths/min in this window*) | Click to edit breaths, drag to create a phase · wheel = scroll · Ctrl/⌘ + wheel = zoom · ← → keys · **Signal** button or `R` = filtered/raw |
+| **Detail** | The signal with every detected breath (filtered, or raw: see below), and, small in the top-right corner, the breath rate of the visible window (e.g. *16.0 breaths/min*) | Click to edit breaths, drag to create a phase · wheel = scroll · Ctrl/⌘ + wheel = zoom · ← → keys · **Signal** button or `R` = filtered/raw |
 | **Phases and results** | One row per phase plus the whole recording | Rename, edit times, view, delete, export |
 | **Settings** (bottom) | Blind review and detection settings | Click *Settings* to open |
 
