@@ -19,7 +19,7 @@ It runs entirely in your web browser. Recordings are **not uploaded** anywhere; 
    - **Click a mark** to remove a wrong breath (click again to restore it).
    - **Click a hollow ▽** to count a breath the detector was unsure about.
    - **Click anywhere else** to add a missed breath. It snaps to a peak within ±0.25 s; hold **Alt/Option** to place it exactly.
-4. **Mark your phases** by dragging across the overview (top) or the detail plot. Rename them and fine-tune start/end times in the table at the bottom (type `m:ss` or seconds).
+4. **Mark your phases** by dragging across the overview (top) or the detail plot. Start and end snap to round times that fit the zoom level (whole seconds in a 60 s window, 5 s steps over a few minutes, up to 30 s steps over a long recording); hold **Alt/Option** while dragging for exact times. Rename them and fine-tune start/end times in the table at the bottom (type `m:ss` or seconds).
 5. **Export:** *Export results CSV* (one row per phase) and, if needed, *Export breaths CSV* (one row per breath).
 6. **Save the session** (*Session → Save*, at the bottom of *Phases and results*) to keep your edits and phases as a `.json` file. *Load* restores them later or on another computer.
 

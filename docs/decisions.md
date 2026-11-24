@@ -75,6 +75,10 @@ Researchers wanted to inspect the original data behind a doubtful breath. The de
 - **Phase rows are the navigation:** clicking (or tabbing into) a phase row shows it in the detail plot and highlights the row; the *View* button was removed.
 - **Session controls together** (Save / Load / Clear) at the bottom of *Phases and results*: rarely used, so out of the way.
 - **Raw/filtered switch moved into Settings → Display** (key R still works); the plot labels the raw view so it's obvious when it's on.
+- **Phase edges snap** to round times depending on the zoom level (1/5/10/30 s), Alt/Option for exact; phases are usually reported in round times.
+- **Window lengths:** fixed list 10, 30, 60, 120, 300 s; zooming to other lengths shows the number without growing the list.
+- **Removed: export text box.** Exports used to also show their content in a text box (a fallback for sandboxed frames); it cluttered the page. Clipboard copy remains as a silent fallback when a download can't be created.
+- **Header:** one-line purpose statement in the centre, a more visible *Help* button; *help* also in the footer. Icons drawn with thinner lines.
 - **Versioned releases:** tag `v<VERSION>`, GitHub Release with the HTML attached (offline lab PCs), and a permanent copy on the site under `v/<VERSION>/`, so a researcher can go back to the version a study was analysed with if a later version changes results.
 
 ## Name

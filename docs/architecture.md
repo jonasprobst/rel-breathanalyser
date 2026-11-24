@@ -89,6 +89,8 @@ Breath mark colours (Okabe–Ito, colour-blind safe): auto `#0072b2` blue, uncle
 
 Raw view (`showRaw`): `drawDetail()` draws `readChannelRange(W, chan, …)` for the visible window instead of `D.z`, with one bin per plot pixel, and puts the marks on that trace. It is display only: detection, click snapping, statistics and exports keep using `D.z`. The result is cached in `rawC` (keyed by file, channel, window and width) because the detail plot redraws on every mouse move while dragging.
 
+Phase drags (overview and detail) snap both edges with `snapT(t, visibleSeconds, e)`: step `snapStep` = 1 s (≤ 70 s visible), 5 s (≤ 400 s), 10 s (≤ 1200 s), else 30 s; Alt/Option = exact. The detail *Window* select has fixed choices (10, 30, 60, 120, 300 s); other lengths from wheel/button zoom are shown through one `hidden` option (`#spanCustom`) instead of being added to the list.
+
 Mouse interaction on the detail plot: `mousedown` → `mousemove` → `mouseup`. A movement of more than 5 px is a drag (creates a phase if ≥ 1 s and blind review is off). Otherwise it's a click and goes to `detailClick`.
 
 ### Persistence
@@ -110,7 +112,7 @@ A former `breathcounter:combined` key (combined results, removed in 1.2.0) may s
 `offer(name, text, mime)` tries, in order:
 1. `claude.use('downloads')`: only exists when the page runs as a claude.ai artifact with the `downloads` capability declared.
 2. A normal `<a download>` (GitHub Pages, local file).
-3. Shows the text in a textarea and copies it to the clipboard (fallback for sandboxed frames).
+3. Copies the text to the clipboard, only if creating the download throws (fallback for sandboxed frames). There is no on-page text box any more.
 
 ### Offline download
 

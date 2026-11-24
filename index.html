@@ -27,7 +27,7 @@
   #det{cursor:pointer}
   .muted{color:var(--mute)}
   .legend span{margin-right:14px;white-space:nowrap}
-  .ic{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;vertical-align:-3px}
+  .ic{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.15;stroke-linecap:round;stroke-linejoin:round;vertical-align:-3px}
   button.icb{padding:4px 7px;line-height:1}
   #tbl tr[data-k]{cursor:pointer}
   #tbl tr.act td{background:#eff6ff}
@@ -44,7 +44,10 @@
   .big{font-weight:600}
   #status{font-size:12.5px}
   #settings summary{cursor:pointer;color:var(--acc)}
-  #copyOut{width:100%;height:120px;font:12px monospace;display:none;margin-top:8px}
+  .tagline{flex:1;text-align:center;color:var(--mute);font-size:13.5px}
+  .helpbtn{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--acc);color:var(--acc);border-radius:6px;padding:4px 12px;text-decoration:none;font-weight:500;margin-left:auto}
+  .helpbtn:hover{background:var(--acc);color:#fff}
+  @media (max-width:760px){.tagline{display:none}}
   .drop{border:2px dashed var(--line);border-radius:8px;padding:32px;text-align:center;color:var(--mute);margin-top:8px;cursor:pointer}
   .filebtn{border:1px solid var(--line);border-radius:6px;padding:4px 10px;cursor:pointer;background:#fff;color:var(--ink);font-size:13px}
   .filebtn:hover{border-color:var(--acc)}
@@ -57,7 +60,8 @@
 <body>
 <header>
   <h1>Breathanalyser</h1>
-  <a href="https://github.com/jonasprobst/rel-breathanalyser#readme" target="_blank" rel="noopener" style="margin-left:auto;color:var(--acc)">Help</a>
+  <span class="tagline">Count and check breaths in respiratory recordings, and get breaths per minute per phase.</span>
+  <a class="helpbtn" href="https://github.com/jonasprobst/rel-breathanalyser#readme" target="_blank" rel="noopener" title="User guide: how to use the app, what the results mean"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5"/><path d="M6.2 6.2a1.9 1.9 0 1 1 2.6 1.8c-.5.2-.8.6-.8 1.1v.4M8 11.6v.1"/></svg>Help</a>
 </header>
 <main>
   <div class="card">
@@ -91,7 +95,7 @@
         </div>
         <div class="row" style="gap:6px">
           <button id="detOut" class="icb" title="Zoom out (show more time)" aria-label="Zoom out"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10 10l4.2 4.2M4.5 6.5h4"/></svg></button>
-          <label>Window <select id="span"><option>10</option><option>20</option><option>30</option><option selected>60</option><option>120</option><option>300</option><option>600</option></select> s</label>
+          <label>Window <select id="span"><option>10</option><option>30</option><option selected>60</option><option>120</option><option>300</option><option id="spanCustom" hidden></option></select> s</label>
           <button id="detIn" class="icb" title="Zoom in (show less time)" aria-label="Zoom in"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10 10l4.2 4.2M4.5 6.5h4M6.5 4.5v4"/></svg></button>
         </div>
       </div>
@@ -131,7 +135,6 @@
         <span id="clrConfirm" style="display:none"><span class="warn">Deletes all phases, breath edits, Subject ID and settings for this file. This can't be undone.</span>
           <button id="clrYes" class="danger on">Delete everything</button> <button id="clrNo">Cancel</button></span>
       </div>
-      <textarea id="copyOut" readonly></textarea>
       <div id="expMsg" class="muted" style="margin-top:6px"></div>
     </div>
 
@@ -160,7 +163,7 @@
     </details>
   </div>
 </main>
-<footer>Breathanalyser <span id="ver"></span><span id="dlWrap" style="display:none"> · <a id="dlSelf" href="#" title="Save this version as one HTML file. Open it in a browser to use the app without internet.">download for offline use</a></span> · <a href="https://github.com/jonasprobst/rel-breathanalyser/releases" target="_blank" rel="noopener">earlier versions</a></footer>
+<footer>Breathanalyser <span id="ver"></span> · <a href="https://github.com/jonasprobst/rel-breathanalyser#readme" target="_blank" rel="noopener">help</a><span id="dlWrap" style="display:none"> · <a id="dlSelf" href="#" title="Save this version as one HTML file. Open it in a browser to use the app without internet.">download for offline use</a></span> · <a href="https://github.com/jonasprobst/rel-breathanalyser/releases" target="_blank" rel="noopener">earlier versions</a></footer>
 
 <script id="core">
 // ---------- Pure signal-processing core (no DOM) ----------
@@ -372,6 +375,9 @@ function drawAll(){if(!D)return;drawOverview();drawRate();drawDetail();}
 
 // ---- overview ----
 let drag=null;
+// phase edges snap to round times; the step depends on the time visible in that plot (Alt/Option = exact)
+const snapStep=vis=>vis<=70?1:vis<=400?5:vis<=1200?10:30;
+const snapT=(t,vis,e)=>e&&e.altKey?t:Math.max(0,Math.min(D.dur,Math.round(t/snapStep(vis))*snapStep(vis)));
 function drawOverview(){
   const {g,w,h}=setup($('ov')),B0=18,T0=ov0,T1=ov1,X=t=>L+(t-T0)/(T1-T0)*(w-L-R);
   xAxis(g,w,h,T0,T1,B0);
@@ -393,11 +399,11 @@ function drawOverview(){
 }
 function evT(e,c,t0,t1){const r=c.getBoundingClientRect(),x=e.clientX-r.left;return t0+(x-L)/(r.width-L-R)*(t1-t0);}
 function bindOverview(c){
-  c.addEventListener('mousedown',e=>{const t=Math.max(0,Math.min(D.dur,evT(e,c,ov0,ov1)));drag={a:t,b:t,moved:false,x:e.clientX};});
-  window.addEventListener('mousemove',e=>{if(!drag)return;drag.b=Math.max(0,Math.min(D.dur,evT(e,c,ov0,ov1)));if(Math.abs(e.clientX-drag.x)>4)drag.moved=true;drawOverview();});
+  c.addEventListener('mousedown',e=>{const t=Math.max(0,Math.min(D.dur,evT(e,c,ov0,ov1)));drag={a:t,b:t,a0:t,moved:false,x:e.clientX};});
+  window.addEventListener('mousemove',e=>{if(!drag)return;if(Math.abs(e.clientX-drag.x)>4)drag.moved=true;const vis=ov1-ov0;drag.a=snapT(drag.a0,vis,e);drag.b=snapT(evT(e,c,ov0,ov1),vis,e);drawOverview();});
   window.addEventListener('mouseup',()=>{if(!drag)return;const d=drag;drag=null;
     if(d.moved&&Math.abs(d.b-d.a)>=3&&!blind){addPhase(Math.min(d.a,d.b),Math.max(d.a,d.b));}
-    else{view=Math.max(0,Math.min(D.dur-span,d.a-span/2));ys=null;drawAll();}
+    else{view=Math.max(0,Math.min(D.dur-span,d.a0-span/2));ys=null;drawAll();}
   });
 }
 
@@ -551,12 +557,12 @@ function csvBreaths(){
   return lines.join('\n')+'\n';
 }
 async function offer(name,text,mime){
-  const msg=$('expMsg'),ta=$('copyOut');ta.style.display='none';msg.textContent='';
+  const msg=$('expMsg');msg.textContent='';
   if(downloads){try{await downloads.save({filename:name,data:text});msg.textContent='Saved '+name;return;}catch(e){}}
-  try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:mime}));a.download=name;document.body.appendChild(a);a.click();a.remove();}catch(e){}
-  ta.value=text;ta.style.display='block';
-  try{await navigator.clipboard.writeText(text);msg.textContent=`If no download started, the content of ${name} was copied to your clipboard (also shown above).`;}
-  catch(e){msg.textContent=`If no download started, copy the content of ${name} from the box above.`;}
+  try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:mime}));a.download=name;document.body.appendChild(a);a.click();a.remove();msg.textContent='Downloaded '+name;return;}catch(e){}
+  // download not possible (e.g. sandboxed frame): copy to the clipboard instead
+  try{await navigator.clipboard.writeText(text);msg.textContent=`Download not possible here: the content of ${name} was copied to your clipboard.`;}
+  catch(e){msg.textContent=`Could not save ${name} in this browser window. Open the app directly (not embedded) and try again.`;}
 }
 const base=()=>fileName.replace(/\.[^.]+$/,'');
 $('expRes').onclick=()=>offer(base()+'_results.csv',csvResults(),'text/csv');
@@ -569,7 +575,7 @@ const clrShow=v=>{$('clrConfirm').style.display=v?'':'none';$('clrSes').style.di
 $('clrSes').onclick=()=>clrShow(true);$('clrNo').onclick=()=>clrShow(false);
 $('clrYes').onclick=()=>{try{localStorage.removeItem(key());}catch(e){}
   P={...DEF};phases=[];E={added:[],removed:[]};horseId=base();$('horseId').value=horseId;syncParamInputs();clrShow(false);run();
-  $('copyOut').style.display='none';$('expMsg').textContent='Session cleared: this file is back to the automatic detection with default settings.';};
+  $('expMsg').textContent='Session cleared: this file is back to the automatic detection with default settings.';};
 $('horseId').addEventListener('change',e=>{horseId=e.target.value.trim()||base();e.target.value=horseId;save();});
 
 $('expSes').onclick=()=>offer(base()+'_session.json',JSON.stringify(session(),null,1),'application/json');
@@ -598,8 +604,8 @@ $('addView').onclick=()=>addPhase(view,Math.min(D.dur,view+span));
 // detail: click edits breaths, drag creates a phase
 let ddrag=null;
 const detT=e=>{const c=$('det'),r=c.getBoundingClientRect();return Math.max(0,Math.min(D.dur,view+(e.clientX-r.left-L)/(r.width-L-R)*span));};
-$('det').addEventListener('mousedown',e=>{if(!D||e.button!==0)return;ddrag={a:detT(e),b:detT(e),x:e.clientX,moved:false};});
-window.addEventListener('mousemove',e=>{if(!ddrag)return;ddrag.b=detT(e);if(Math.abs(e.clientX-ddrag.x)>5)ddrag.moved=true;if(ddrag.moved)drawDetail();});
+$('det').addEventListener('mousedown',e=>{if(!D||e.button!==0)return;ddrag={a:detT(e),b:detT(e),a0:detT(e),x:e.clientX,moved:false};});
+window.addEventListener('mousemove',e=>{if(!ddrag)return;if(Math.abs(e.clientX-ddrag.x)>5)ddrag.moved=true;ddrag.a=snapT(ddrag.a0,span,e);ddrag.b=snapT(detT(e),span,e);if(ddrag.moved)drawDetail();});
 window.addEventListener('mouseup',e=>{if(!ddrag)return;const d=ddrag;ddrag=null;
   if(!d.moved){if(e.target===$('det'))detailClick(e);return;}
   if(!blind&&Math.abs(d.b-d.a)>=1)addPhase(Math.min(d.a,d.b),Math.max(d.a,d.b));else drawDetail();});
@@ -616,8 +622,10 @@ function panOv(dt){const w=ov1-ov0;let a=Math.max(0,Math.min(D.dur-w,ov0+dt));ov
   else zoomOv(Math.exp(e.deltaY*0.002),evT(e,c,ov0,ov1));},{passive:false}));
 $('ovIn').onclick=()=>zoomOv(0.5);$('ovOut').onclick=()=>zoomOv(2);$('ovFit').onclick=()=>{ov0=0;ov1=D.dur;drawAll();};
 function setSpan(s,c){if(c===undefined)c=view+span/2;const r=(c-view)/span;span=Math.max(5,Math.min(D.dur,s));
-  const sel=$('span');if(![...sel.options].some(o=>+o.value===Math.round(span))){const o=document.createElement('option');o.textContent=Math.round(span);sel.appendChild(o);[...sel.options].sort((a,b)=>a.value-b.value).forEach(o=>sel.appendChild(o));}
-  sel.value=Math.round(span);setView(c-r*span,true);}
+  // fixed choices; any other length (wheel zoom, + / −) is shown via a hidden extra option, not added to the list
+  const sel=$('span'),v=Math.round(span),cu=$('spanCustom');
+  if([...sel.options].some(o=>o!==cu&&+o.value===v))sel.value=v;else{cu.value=cu.textContent=v;sel.value=v;}
+setView(c-r*span,true);}
 $('detIn').onclick=()=>setSpan(span/2);$('detOut').onclick=()=>setSpan(span*2);
 document.addEventListener('keydown',e=>{if(!D||/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))return;
   if(e.key==='ArrowRight'){setView(view+span*.8);e.preventDefault();}else if(e.key==='ArrowLeft'){setView(view-span*.8);e.preventDefault();}
