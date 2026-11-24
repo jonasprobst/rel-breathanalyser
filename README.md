@@ -91,15 +91,17 @@ Set the **Subject ID** (defaults to the file name) and export each recording's r
 
 **`<file>_breaths.csv`**: one row per breath: `subject_id, time_s, source (auto/manual), unclear (0/1), phase`.
 
-**Opening the CSVs:** plain comma-separated UTF-8 text with a header row, decimal point `.`, text in quotes. Empty numeric cells (e.g. *Median /min* for a phase with too few breaths) are read as missing values.
+**Opening the CSVs in R:** the files are made to open correctly with plain `read.csv()` on any computer, including Windows with older R versions, with no extra options:
 
 ```r
-res <- read.csv("sample_results.csv", fileEncoding = "UTF-8")
-br  <- read.csv("sample_breaths.csv",  fileEncoding = "UTF-8", na.strings = c("", "NA"))
-all <- do.call(rbind, lapply(list.files(pattern = "_results\\.csv$"), read.csv, fileEncoding = "UTF-8"))  # stack all recordings
+res <- read.csv("sample_results.csv")
+br  <- read.csv("sample_breaths.csv")
+all <- do.call(rbind, lapply(list.files(pattern = "_results\\.csv$"), read.csv))  # all recordings in one table
 ```
 
-`fileEncoding = "UTF-8"` keeps accented letters in phase names correct on older R versions on Windows. In the breaths file, `phase` is empty for breaths outside any phase; `na.strings` turns that into `NA`. `readr::read_csv()` works too, with no options needed.
+- Missing values are written as `NA` (e.g. *Median /min* for a phase with too few breaths, or `phase` for a breath outside any phase).
+- Text is plain ASCII: accented letters in subject IDs, file and phase names are written without accents (`ä` → `ae`, `é` → `e`, `–` → `-`). The app itself keeps the original names.
+- Comma-separated, decimal point `.`, text in double quotes. Excel also opens the files; missing values then show as `NA`.
 
 **`<file>_session.json`**: phases, your manual edits, settings and channel. Load it again with *Load session*.
 

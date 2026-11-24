@@ -118,6 +118,10 @@ A former `breathcounter:combined` key (combined results, removed in 1.2.0) may s
 
 The footer link *download for offline use* (`#dlSelf`) is an `<a download="breathanalyser-v<VERSION>.html">` pointing at the page's own URL. It is shown only on `http(s)` and when not inside a frame: a downloaded copy (`file:`) is already offline, and sandboxed frames (claude.ai artifact) may block downloads. The browser re-fetches the page from the site when clicked; that is the only request the app can cause, and it is user-initiated and carries no data. It downloads the served file, not the live DOM, so no session state ends up in the copy. On `v/<VERSION>/` pages it downloads that version.
 
+### CSV format
+
+Exports are written for R's `read.csv()` with default options on any platform, including Windows R < 4.2 (native Windows-1252): `q()` quotes text and passes it through `ascii()` (transliteration table `TRANSLIT`, then accent stripping via NFD, other non-ASCII → `_`); missing numbers and phases are `NA` (`n2()`); no BOM (R would put it into the first column name); LF line endings (R accepts LF and CRLF). Session JSON is not affected and keeps full Unicode.
+
 ### Version
 
 `const VERSION` is written into every results row (`tool_version`) and the session file, and shown in the footer. Bump it on any change that can alter results (detection, statistics, columns), and for feature releases. Each released version gets a git tag `v<VERSION>`, a GitHub Release with the HTML attached, and a permanent copy on the site at `v/<VERSION>/` (see `development.md`).
