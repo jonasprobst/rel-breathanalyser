@@ -1,0 +1,27 @@
+# Creates a GitHub Release with the app attached whenever a version tag (v1.2.0, …) is pushed.
+# Tags are made by scripts/release.sh.
+name: Release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check that the tag matches VERSION in index.html
+        run: |
+          v="$(grep -oE "const VERSION='[^']+'" index.html | cut -d"'" -f2)"
+          [ "v$v" = "$GITHUB_REF_NAME" ] || { echo "Tag $GITHUB_REF_NAME does not match VERSION $v in index.html"; exit 1; }
+      - name: Run core tests
+        run: node tests/core.test.js
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp index.html "breathanalyser-$GITHUB_REF_NAME.html"
+          gh release create "$GITHUB_REF_NAME" "breathanalyser-$GITHUB_REF_NAME.html" \
+            --title "Breathanalyser $GITHUB_REF_NAME" --generate-notes \
+            --notes "Download breathanalyser-$GITHUB_REF_NAME.html and open it in a browser (works offline). Online: https://jonasprobst.github.io/rel-breathanalyser/v/${GITHUB_REF_NAME#v}/"

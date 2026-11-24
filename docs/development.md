@@ -28,14 +28,27 @@ The site is served from the `gh-pages` branch, which contains only `index.html` 
 scripts/deploy-pages.sh            # publishes the current index.html from main
 ```
 
-The script builds the branch in a temporary worktree and pushes it. In the repository settings, GitHub Pages must be set to *Deploy from a branch → gh-pages / (root)* (once). The site is https://jonasprobst.github.io/rel-breathanalyser/.
+The script builds the branch in a temporary worktree and pushes it. It replaces the root `index.html` and adds/updates `v/<VERSION>/index.html` and the list at `v/index.html`; earlier `v/…` folders are kept. Deploying again with the same `VERSION` overwrites that version's copy (fine for fixes that don't change results; otherwise bump `VERSION`). In the repository settings, GitHub Pages must be set to *Deploy from a branch → gh-pages / (root)* (once). The site is https://jonasprobst.github.io/rel-breathanalyser/.
+
+## Release a version
+
+1. Bump `const VERSION` in `index.html` (semver: patch = fixes, minor = features, major = results change in a way that breaks comparison with earlier results), update README and `decisions.md`, merge to `main`.
+2. On an up-to-date, clean `main`:
+
+```bash
+scripts/release.sh
+```
+
+It runs the test, creates and pushes the tag `v<VERSION>`, and runs `deploy-pages.sh`. The pushed tag starts `.github/workflows/release.yml`, which checks that the tag matches `VERSION`, runs the test and creates the GitHub Release with `breathanalyser-v<VERSION>.html` attached and generated notes.
+
+Versions before 1.2.0 were not tagged. To add 1.1.0 afterwards: `git tag -a v1.1.0 d937bd5 -m "Breathanalyser v1.1.0" && git push origin v1.1.0` (creates the Release; there is no site copy for it).
 
 ## Conventions
 
 - Keep the core block DOM-free and testable in Node.
 - Times are stored in **seconds** (floats), never sample indices, so edits survive parameter changes.
-- Bump `VERSION` in `index.html` when results could change. Bump the combined-store `fmt` when result columns change.
-- When changing results columns, update `RES_HEAD`, `resultLines()`, the README's "Results columns" and "Exported files", and `fmt`.
+- Bump `VERSION` in `index.html` when results could change, and release it (see above).
+- When changing results columns, update `RES_HEAD`, `resultLines()` and the README's "Results columns" and "Exported files".
 - Keep the README for researchers (no code), and these docs for developers.
 - Record notable decisions or removals in `decisions.md`.
 

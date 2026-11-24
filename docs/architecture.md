@@ -19,7 +19,10 @@ tests/
   core.test.js             Node test of the processing core on a synthetic recording
   make-sample-wav.js       generates the synthetic test recording
 scripts/
-  deploy-pages.sh          publishes index.html to the gh-pages branch
+  deploy-pages.sh          publishes index.html to the gh-pages branch (latest + v/<version>/)
+  release.sh               tags v<VERSION>, pushes the tag, runs deploy-pages.sh
+.github/workflows/
+  release.yml              on a v* tag: checks VERSION, runs the test, creates the GitHub Release
 ```
 
 ## Inside `index.html`
@@ -56,8 +59,9 @@ Global state (plain variables, no framework):
 | `phases = [{name, a, b}]` | Phases in seconds, kept sorted by start |
 | `view`, `span` | Detail plot window (start, length in s) |
 | `ov0`, `ov1` | Overview/rate graph zoom range |
-| `blind` | Blind review on/off (hides phases and results everywhere) |
+| `blind` | Blind review on/off (hides phases and results everywhere). Set with the checkbox in Settings |
 | `showRaw`, `rawC` | Detail plot shows raw instead of filtered signal (not persisted); cache of the last raw window read |
+| `ys` | Detail plot vertical scale `{raw, lo, hi}`; `null` = re-fit on the next draw |
 | `horseId` | Subject ID (variable name is historical; the UI and exports say "subject") |
 
 Flow:
@@ -77,6 +81,12 @@ Three `<canvas>` elements drawn with the 2D API. `setup(c)` sizes each canvas fo
 
 Shared x-axis margins: `L = 56`, `R = 10` px. Every mouse→time conversion uses the same margins.
 
+Page layout, top to bottom: header (title, Help link) → *Recording* card (status line with file info, channel selector, file button, drop zone before a file is loaded) → `#app` (Overview, Detail, Phases and results; hidden until a file is loaded) → *Settings* card (`<details id="settings">`: blind review always; the detection inputs `#detSet` only once a file is loaded, because loading resets the parameters) → footer with `VERSION`.
+
+Detail plot vertical scale: kept in `ys` so it stays steady while scrolling. `ys = null` forces a re-fit (`detailScale()`: 0.5–99.5 % quantiles over the visible window plus one window on either side, plus padding). It is reset on zoom (`setSpan`), jumps (`setView(v, true)`: next/previous unclear, rate-graph click, phase *View*; overview click), raw/filtered switch, `run()`, channel change and file load. Plain `setView(v)` (wheel, arrow keys, ◀ ▶) keeps it. In raw view it also re-fits when the mean of the visible trace leaves the scale (offset drift). The trace is clipped to the plot area and marks are clamped to stay visible.
+
+Breath mark colours (Okabe–Ito, colour-blind safe): auto `#0072b2` blue, unclear `#e69f00` orange, added `#009e73` green, removed grey. CSS tokens `--brk`, `--unc`, `--add` for the legend; the canvas uses the same hex values.
+
 Raw view (`showRaw`): `drawDetail()` draws `readChannelRange(W, chan, …)` for the visible window instead of `D.z`, with one bin per plot pixel, and puts the marks on that trace. It is display only: detection, click snapping, statistics and exports keep using `D.z`. The result is cached in `rawC` (keyed by file, channel, window and width) because the detail plot redraws on every mouse move while dragging.
 
 Mouse interaction on the detail plot: `mousedown` → `mousemove` → `mouseup`. A movement of more than 5 px is a drag (creates a phase if ≥ 1 s and blind review is off). Otherwise it's a click and goes to `detailClick`.
@@ -88,11 +98,10 @@ Mouse interaction on the detail plot: `mousedown` → `mousemove` → `mouseup`.
 | Session (phases, edits, params, channel, subject ID) | `localStorage['breathcounter:<filename>:<size>']`, autosaved on every change. Also exportable as JSON |
 | Last channel | `localStorage['breathcounter:channel']` |
 | Blind review | `localStorage['breathcounter:blind']` |
-| Combined results | `localStorage['breathcounter:combined']` = `{<filename>: {fmt, subject, settings, lines[]}}` |
 
 The `breathcounter:` key prefix is the app's former name. It is kept so existing users don't lose saved work. All storage access is wrapped in `try/catch`: storage may be missing (sandboxed iframes, private mode).
 
-`fmt` in the combined store is a format version. Entries with another `fmt` are ignored, because their CSV columns would not line up. **Bump it whenever the results columns change.**
+A former `breathcounter:combined` key (combined results, removed in 1.2.0) may still exist in some browsers; nothing reads it.
 
 ### Export
 
@@ -103,9 +112,9 @@ The `breathcounter:` key prefix is the app's former name. It is kept so existing
 
 ### Version
 
-`const VERSION` is written into every results row (`tool_version`). Bump it on any change that can alter results (detection, statistics, columns).
+`const VERSION` is written into every results row (`tool_version`) and the session file, and shown in the footer. Bump it on any change that can alter results (detection, statistics, columns), and for feature releases. Each released version gets a git tag `v<VERSION>`, a GitHub Release with the HTML attached, and a permanent copy on the site at `v/<VERSION>/` (see `development.md`).
 
 ## Hosting
 
-- **GitHub Pages:** the `gh-pages` branch contains only `index.html` and `.nojekyll`. Publish with `scripts/deploy-pages.sh` (see `development.md`).
+- **GitHub Pages:** the `gh-pages` branch contains `index.html` (latest), `.nojekyll` and `v/` (one folder per published version plus a generated list). Publish with `scripts/deploy-pages.sh` or `scripts/release.sh` (see `development.md`).
 - **claude.ai artifact:** the same file has also been published as an artifact; it declares the `downloads` capability.

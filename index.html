@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Breathanalyser</title>
 <style>
-  :root{--bg:#fafaf8;--panel:#fff;--ink:#1f2328;--mute:#6b7280;--line:#e5e7eb;--acc:#2563eb;--red:#dc2626;--amber:#d97706;--green:#16a34a}
+  :root{--bg:#fafaf8;--panel:#fff;--ink:#1f2328;--mute:#6b7280;--line:#e5e7eb;--acc:#2563eb;--brk:#0072b2;--unc:#e69f00;--add:#009e73}
   *{box-sizing:border-box}
   body{margin:0;font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
   header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
@@ -36,23 +36,33 @@
   .sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:middle}
   .big{font-weight:600}
   #status{font-size:12.5px}
-  #help summary{cursor:pointer;color:var(--acc)}
+  #settings summary{cursor:pointer;color:var(--acc)}
   #copyOut{width:100%;height:120px;font:12px monospace;display:none;margin-top:8px}
-  .drop{border:2px dashed var(--line);border-radius:8px;padding:40px;text-align:center;color:var(--mute)}
+  .drop{border:2px dashed var(--line);border-radius:8px;padding:32px;text-align:center;color:var(--mute);margin-top:8px;cursor:pointer}
+  .filebtn{border:1px solid var(--line);border-radius:6px;padding:4px 10px;cursor:pointer;background:#fff;color:var(--ink);font-size:13px}
+  .filebtn:hover{border-color:var(--acc)}
+  footer{padding:4px 16px 20px;text-align:center;color:var(--mute);font-size:12.5px}
+  footer a{color:var(--acc)}
+  #settings h3{font-size:13px;margin:12px 0 4px;color:var(--ink)}
   .drop.hover{border-color:var(--acc);color:var(--acc)}
 </style>
 </head>
 <body>
 <header>
   <h1>Breathanalyser</h1>
-  <input type="file" id="file" accept=".wav,audio/wav">
-  <label>Channel <select id="chan" disabled></select></label>
-  <button id="blindBtn" title="Hide phases and results while validating breaths, so the review is not influenced by knowing which stretch is a stimulus">Blind review: off</button>
-  <span id="status" class="muted">Load a .wav recording. Everything stays in your browser.</span>
   <a href="https://github.com/jonasprobst/rel-breathanalyser#readme" target="_blank" rel="noopener" style="margin-left:auto;color:var(--acc)">Help</a>
 </header>
 <main>
-  <div id="drop" class="drop">Drop a .wav file here, or use the file picker above.</div>
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div class="row" style="gap:6px 10px"><b>Recording</b> <span id="status" class="muted">Load a .wav recording. Everything stays in your browser.</span></div>
+      <div class="row">
+        <label id="chanWrap" style="display:none" title="The channel the breaths are detected on. Check that it is the breathing belt.">Channel <select id="chan"></select></label>
+        <label class="filebtn"><input type="file" id="file" accept=".wav,audio/wav" style="display:none"><span id="fileLbl">Choose file</span></label>
+      </div>
+    </div>
+    <div id="drop" class="drop">Drop a .wav file here, or click to choose one.</div>
+  </div>
 
   <div id="app" style="display:none">
     <div class="card">
@@ -68,6 +78,7 @@
     </div>
 
     <div class="card">
+      <div style="margin-bottom:6px"><b>Detail</b> <span class="muted">— click to add or remove breaths, drag to create a phase, mouse wheel to scroll, Ctrl/⌘ + wheel to zoom</span></div>
       <div class="row" style="justify-content:space-between;margin-bottom:6px">
         <div class="row">
           <button id="prev" title="Left arrow">◀</button>
@@ -81,15 +92,15 @@
           <span id="viewInfo" class="muted"></span>
         </div>
         <div class="legend">
-          <span style="color:var(--red)">▼ breath</span>
-          <span style="color:var(--amber)">▼ unclear breath</span>
-          <span style="color:var(--amber)">▽ unclear, not counted</span>
-          <span style="color:var(--green)">▼ added by you</span>
+          <span style="color:var(--brk)">▼ breath</span>
+          <span style="color:var(--unc)">▼ unclear breath</span>
+          <span style="color:var(--unc)">▽ unclear, not counted</span>
+          <span style="color:var(--add)">▼ added by you</span>
           <span style="color:#9ca3af">✕ removed by you</span>
         </div>
       </div>
       <canvas id="det" height="320"></canvas>
-      <div class="muted" style="margin-top:6px">Click a mark to remove it (click again to restore). Click a ▽ to count it. Click anywhere else to add a breath; it snaps to a high within ±0.25 s if there is one (hold Alt/Option to place it exactly). Drag across the plot to create a phase. Mouse wheel scrolls; Ctrl/⌘ + wheel zooms. “Signal” (or the R key) switches to the raw, unfiltered recording to inspect the original data; breaths are always detected on the filtered signal.</div>
+      <div class="muted" style="margin-top:6px">Click a mark to remove it (click again to restore). Click a ▽ to count it. Click anywhere else to add a breath; it snaps to a high within ±0.25 s if there is one (hold Alt/Option to place it exactly). Drag across the plot to create a phase. The height scale stays fixed while you scroll and re-fits when you zoom or jump. “Signal” (or the R key) switches to the raw, unfiltered recording to inspect the original data; breaths are always detected on the filtered signal.</div>
     </div>
 
     <div class="card">
@@ -100,7 +111,7 @@
           <label style="color:var(--ink)"><input type="file" id="loadSes" accept=".json" style="display:none"><span style="border:1px solid var(--line);border-radius:6px;padding:4px 10px;cursor:pointer;background:#fff">Load session</span></label>
         </div>
       </div>
-      <div id="blindMsg">Blind review is on: phases and results are hidden. Validate the breaths, then turn blind review off (top of the page) to see the results.</div>
+      <div id="blindMsg">Blind review is on: phases and results are hidden. Validate the breaths, then turn blind review off in <a href="#settings" id="toSettings">Settings</a> to see the results.</div>
       <div id="resBody">
         <div class="row" style="gap:8px 16px;margin-bottom:8px">
           <label title="Identifies this recording in exports, e.g. the animal or subject ID">Subject ID <input type="text" id="horseId" style="width:140px"></label>
@@ -110,34 +121,36 @@
         <div class="row" style="gap:6px;margin-top:8px">
           <button id="expRes" class="pri">Export results CSV</button>
           <button id="expBr">Export breaths CSV</button>
-          <span class="muted" style="margin-left:8px">All recordings:</span>
-          <button id="addComb" title="Add this recording's results to a combined file kept in this browser">Add to combined results</button>
-          <button id="expComb">Export combined CSV</button>
-          <button id="clrComb">Clear combined</button>
         </div>
       </div>
       <textarea id="copyOut" readonly></textarea>
       <div id="expMsg" class="muted" style="margin-top:6px"></div>
     </div>
 
-    <div class="card">
-      <details id="help">
-        <summary>Detection settings</summary>
-        <div class="row" style="margin-top:8px">
-          <label>Min breath size <input type="number" id="p_thr" value="35" min="5" max="90" step="1"> % of local typical</label>
-          <label>Min time between breaths <input type="number" id="p_minGap" value="1.2" step="0.1" min="0.3"> s</label>
-          <label>Unclear band ± <input type="number" id="p_unc" value="10" step="1" min="0"> %</label>
-          <label>High-pass <input type="number" id="p_hp" value="0.05" step="0.01" min="0.01"> Hz</label>
-          <label>Low-pass <input type="number" id="p_lp" value="1.0" step="0.1" min="0.2"> Hz</label>
-          <label>Typical-size window <input type="number" id="p_ampWin" value="30" step="5" min="5"> s</label>
-          <label>Skip start <input type="number" id="p_skip" value="0" step="5" min="0"> s</label>
-          <button id="resetP">Defaults</button>
-        </div>
-        <p class="muted" style="margin:8px 0 0">A high counts as a breath when its rise is at least “min breath size” of the typical breath height (10th–90th percentile range) in the surrounding window. Breaths within the unclear band of that threshold are marked for review. Your manual adds and removals are kept when you change settings.</p>
-      </details>
-    </div>
+  </div>
+  <div class="card">
+    <details id="settings">
+      <summary>Settings</summary>
+      <h3>Review</h3>
+      <label style="color:var(--ink)" title="Hide phases and results while validating breaths, so the review is not influenced by knowing which stretch belongs to which condition"><input type="checkbox" id="blind"> Blind review: hide phases and results while validating breaths</label>
+      <div id="detSet">
+      <h3>Detection</h3>
+      <div class="row">
+        <label>Min breath size <input type="number" id="p_thr" value="35" min="5" max="90" step="1"> % of local typical</label>
+        <label>Min time between breaths <input type="number" id="p_minGap" value="1.2" step="0.1" min="0.3"> s</label>
+        <label>Unclear band ± <input type="number" id="p_unc" value="10" step="1" min="0"> %</label>
+        <label>High-pass <input type="number" id="p_hp" value="0.05" step="0.01" min="0.01"> Hz</label>
+        <label>Low-pass <input type="number" id="p_lp" value="1.0" step="0.1" min="0.2"> Hz</label>
+        <label>Typical-size window <input type="number" id="p_ampWin" value="30" step="5" min="5"> s</label>
+        <label>Skip start <input type="number" id="p_skip" value="0" step="5" min="0"> s</label>
+        <button id="resetP">Defaults</button>
+      </div>
+      <p class="muted" style="margin:8px 0 0">A high counts as a breath when its rise is at least “min breath size” of the typical breath height (10th–90th percentile range) in the surrounding window. Breaths within the unclear band of that threshold are marked for review. Your manual adds and removals are kept when you change settings.</p>
+      </div>
+    </details>
   </div>
 </main>
+<footer>Breathanalyser <span id="ver"></span> · <a href="https://github.com/jonasprobst/rel-breathanalyser/releases" target="_blank" rel="noopener">earlier versions</a></footer>
 
 <script id="core">
 // ---------- Pure signal-processing core (no DOM) ----------
@@ -282,8 +295,8 @@ const DEF={skip:0,hp:0.05,lp:1.0,thr:0.35,minGap:1.2,ampWin:30,unc:0.10};
 const COLORS=['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#84cc16','#ec4899'];
 const FS=20;
 let P={...DEF},W=null,fileName='',fileSize=0,chan=0,Y=null,D=null,B=[],E={added:[],removed:[]},phases=[],view=0,span=60;
-let downloads=null,ov0=0,ov1=0,blind=false,horseId='',showRaw=false,rawC={k:'',r:null};
-const VERSION='1.1.0';
+let downloads=null,ov0=0,ov1=0,blind=false,horseId='',showRaw=false,rawC={k:'',r:null},ys=null;
+const VERSION='1.2.0';
 try{blind=localStorage.getItem('breathcounter:blind')==='1';}catch(e){}
 const visPhases=()=>blind?[]:phases;
 if(window.claude&&claude.use)claude.use('downloads').then(d=>downloads=d).catch(()=>{});
@@ -314,23 +327,23 @@ async function loadFile(file){
     let pref=W.fmt.ch-1;
     try{const g=parseInt(localStorage.getItem('breathcounter:channel'));if(g>=1&&g<=W.fmt.ch)pref=g-1;}catch(e){}
     if(st&&st.channel&&st.channel<=W.fmt.ch)pref=st.channel-1;
-    sel.value=pref;sel.disabled=W.fmt.ch<2;
+    sel.value=pref;sel.disabled=W.fmt.ch<2;$('chanWrap').style.display='';
     P={...DEF};phases=[];E={added:[],removed:[]};horseId=file.name.replace(/\.[^.]+$/,'');$('horseId').value=horseId;
     if(st)applySession(st);else syncParamInputs();
     setChannel(pref);
-    $('drop').style.display='none';$('app').style.display='';
-    view=0;ov0=0;ov1=D.dur;resize();
+    $('drop').style.display='none';$('app').style.display='';$('detSet').style.display='';$('fileLbl').textContent='Load another file';
+    view=0;ov0=0;ov1=D.dur;ys=null;resize();
   }catch(err){$('status').textContent='Could not read file: '+err.message;console.error(err);}
 }
 function setChannel(c){
-  chan=+c;
+  chan=+c;ys=null;
   const r=readChannelDown(W,chan,FS);Y=r.y;
   try{localStorage.setItem('breathcounter:channel',chan+1);}catch(e){}
   run();
-  $('status').textContent=`${fileName} · ${W.fmt.ch} ch · ${W.fmt.fs} Hz · ${fmtT(W.fmt.frames/W.fmt.fs)} min · using channel ${chan+1}`;
+  $('status').textContent=`${fileName} · ${W.fmt.ch} ch · ${W.fmt.fs} Hz · ${fmtT(W.fmt.frames/W.fmt.fs)} min`;
 }
 function run(){
-  D=analyse(Y,FS,P);B=mergeEdits(D,E);
+  D=analyse(Y,FS,P);B=mergeEdits(D,E);ys=null;
   if(view<D.s0/D.f&&D.s0>0)view=Math.max(0,D.s0/D.f-2);
   drawAll();renderTable();save();
 }
@@ -375,7 +388,7 @@ function bindOverview(c){
   window.addEventListener('mousemove',e=>{if(!drag)return;drag.b=Math.max(0,Math.min(D.dur,evT(e,c,ov0,ov1)));if(Math.abs(e.clientX-drag.x)>4)drag.moved=true;drawOverview();});
   window.addEventListener('mouseup',()=>{if(!drag)return;const d=drag;drag=null;
     if(d.moved&&Math.abs(d.b-d.a)>=3&&!blind){addPhase(Math.min(d.a,d.b),Math.max(d.a,d.b));}
-    else{view=Math.max(0,Math.min(D.dur-span,d.a-span/2));drawAll();}
+    else{view=Math.max(0,Math.min(D.dur-span,d.a-span/2));ys=null;drawAll();}
   });
 }
 
@@ -410,22 +423,23 @@ function drawDetail(){
   // raw view: original samples of the visible window (min/max per pixel when dense), cached while the window stays the same
   let raw=null;
   if(showRaw&&W){const nb=Math.max(1,Math.floor(w-L-R)),k=[fileName,fileSize,chan,t0,t1,nb].join('|');if(rawC.k!==k)rawC={k,r:readChannelRange(W,chan,t0,t1,nb)};raw=rawC.r;}
-  let lo=Infinity,hi=-Infinity;
-  if(raw)for(let k=0;k<raw.t.length;k++){if(raw.lo[k]<lo)lo=raw.lo[k];if(raw.hi[k]>hi)hi=raw.hi[k];}
-  else for(let i=i0;i<=i1;i++){if(D.z[i]<lo)lo=D.z[i];if(D.z[i]>hi)hi=D.z[i];}
-  if(!isFinite(lo)){lo=0;hi=0;}
-  if(!(hi>lo)){lo-=1;hi+=1;}const pad=(hi-lo)*.12;lo-=pad;hi+=pad*1.6;
-  const Yp=v=>4+(hi-v)/(hi-lo)*(h-B0-8);
+  // vertical scale: kept fixed while scrolling (ys), re-fitted on zoom, jumps, raw/filtered switch and re-analysis
+  if(ys&&ys.raw!==!!raw)ys=null;
+  if(ys){let m=0,n=0;if(raw)for(let k=0;k<raw.t.length;k++){m+=raw.lo[k]+raw.hi[k];n+=2;}else for(let i=i0;i<=i1;i++){m+=D.z[i];n++;}
+    m/=n||1;if(!(m>ys.lo&&m<ys.hi))ys=null;}   // trace drifted out of view (raw offset): re-fit
+  if(!ys)ys=detailScale(raw,w);
+  const lo=ys.lo,hi=ys.hi,Yp=v=>4+(hi-v)/(hi-lo)*(h-B0-8);
   visPhases().forEach((p,k)=>{if(p.b<t0||p.a>t1)return;g.fillStyle=COLORS[k%COLORS.length]+'14';g.fillRect(X(Math.max(p.a,t0)),2,X(Math.min(p.b,t1))-X(Math.max(p.a,t0)),h-B0-2);
     g.fillStyle=COLORS[k%COLORS.length];g.font='12px system-ui';g.textAlign='left';
     [p.a,p.b].forEach((t,j)=>{if(t>=t0&&t<=t1){g.fillRect(X(t)-1,2,2,h-B0-2);}});
     if(p.a>=t0)g.fillText(p.name+' ▸',X(p.a)+4,14);});
   if(D.s0>0&&t0<D.s0/D.f){g.fillStyle='#00000010';g.fillRect(X(t0),2,X(Math.min(t1,D.s0/D.f))-X(t0),h-B0-2);}
   xAxis(g,w,h,t0,t1,B0);
+  g.save();g.beginPath();g.rect(L,2,w-L-R,h-B0-2);g.clip();
   g.strokeStyle='#1f2937';g.lineWidth=1.3;g.beginPath();
   if(raw){g.lineWidth=1;const same=raw.lo===raw.hi;for(let k=0;k<raw.t.length;k++){const x=X(raw.t[k]),yv=Yp(raw.hi[k]);k?g.lineTo(x,yv):g.moveTo(x,yv);if(!same)g.lineTo(x,Yp(raw.lo[k]));}}
   else for(let i=i0;i<=i1;i++){const x=X(i/D.f),yv=Yp(D.z[i]);i===i0?g.moveTo(x,yv):g.lineTo(x,yv);}
-  g.stroke();
+  g.stroke();g.restore();
   if(raw){g.fillStyle='#6b7280';g.font='12px system-ui';g.textAlign='right';g.fillText(`raw signal · ${W.fmt.fs} Hz · unfiltered`,w-R-4,h-B0-8);}
   // height at which a mark is drawn: the visible trace at that time (raw: its highest point within ±0.15 s)
   marks=[];const zAt=t=>{
@@ -433,15 +447,25 @@ function drawDetail(){
     let v=-Infinity,bd=Infinity,bv=lo;
     for(let k=0;k<raw.t.length;k++){const d=Math.abs(raw.t[k]-t);if(d<=0.15&&raw.hi[k]>v)v=raw.hi[k];if(d<bd){bd=d;bv=raw.hi[k];}}
     return isFinite(v)?v:bv;};
-  const tri=(t,col,fill)=>{const x=X(t),yv=Yp(zAt(t))-6;g.beginPath();g.moveTo(x-6,yv-10);g.lineTo(x+6,yv-10);g.lineTo(x,yv);g.closePath();if(fill){g.fillStyle=col;g.fill();}else{g.strokeStyle=col;g.lineWidth=1.6;g.stroke();}};
+  const tri=(t,col,fill)=>{const x=X(t),yv=Math.max(14,Yp(zAt(t))-6);g.beginPath();g.moveTo(x-6,yv-10);g.lineTo(x+6,yv-10);g.lineTo(x,yv);g.closePath();if(fill){g.fillStyle=col;g.fill();}else{g.strokeStyle=col;g.lineWidth=1.6;g.stroke();}};
   const unclear=p=>p.r<P.thr+P.unc;
-  for(const p of D.cand)if(p.t>=t0&&p.t<=t1&&!B.some(b=>Math.abs(b.t-p.t)<0.3)){tri(p.t,'#d97706',false);marks.push({t:p.t,kind:'cand'});}
-  for(const t of E.removed)if(t>=t0&&t<=t1){const x=X(t),yv=Yp(zAt(t))-12;g.strokeStyle='#9ca3af';g.lineWidth=2;g.beginPath();g.moveTo(x-5,yv-5);g.lineTo(x+5,yv+5);g.moveTo(x+5,yv-5);g.lineTo(x-5,yv+5);g.stroke();marks.push({t,kind:'removed'});}
-  for(const b of B)if(b.t>=t0&&b.t<=t1){tri(b.t,b.src==='manual'?'#16a34a':unclear(b)?'#d97706':'#dc2626',true);marks.push({t:b.t,kind:b.src});}
+  for(const p of D.cand)if(p.t>=t0&&p.t<=t1&&!B.some(b=>Math.abs(b.t-p.t)<0.3)){tri(p.t,'#e69f00',false);marks.push({t:p.t,kind:'cand'});}
+  for(const t of E.removed)if(t>=t0&&t<=t1){const x=X(t),yv=Math.max(10,Yp(zAt(t))-12);g.strokeStyle='#9ca3af';g.lineWidth=2;g.beginPath();g.moveTo(x-5,yv-5);g.lineTo(x+5,yv+5);g.moveTo(x+5,yv-5);g.lineTo(x-5,yv+5);g.stroke();marks.push({t,kind:'removed'});}
+  for(const b of B)if(b.t>=t0&&b.t<=t1){tri(b.t,b.src==='manual'?'#009e73':unclear(b)?'#e69f00':'#0072b2',true);marks.push({t:b.t,kind:b.src});}
   if(ddrag&&ddrag.moved){g.fillStyle=blind?'#9ca3af33':'#2563eb33';g.fillRect(X(Math.min(ddrag.a,ddrag.b)),2,Math.abs(X(ddrag.b)-X(ddrag.a)),h-B0-2);
     g.fillStyle='#1f2937';g.font='12px system-ui';g.textAlign='left';g.fillText(blind?'Phases are hidden in blind review':`${fmtT(Math.min(ddrag.a,ddrag.b))} – ${fmtT(Math.max(ddrag.a,ddrag.b))}`,X(Math.min(ddrag.a,ddrag.b))+4,h-B0-8);}
   const st=phaseStats(D,B,E,P,Math.max(t0,D.s0/D.f),Math.min(t1,D.dur));
   $('viewInfo').textContent=`${fmtT(t0)} – ${fmtT(t1)} · ${st.n} breaths in window (${isFinite(st.bpm)?st.bpm.toFixed(1):'–'}/min)`;
+}
+// fit the detail plot's height to a wider stretch (one window either side), ignoring the most extreme 0.5 % at each end (spikes)
+function detailScale(raw,w){
+  const a=Math.max(0,view-span),b=Math.min(D.dur,view+2*span),v=[];
+  if(raw){const r=readChannelRange(W,chan,a,b,Math.max(1,3*Math.floor(w-L-R)));for(let k=0;k<r.t.length;k++){v.push(r.lo[k]);if(r.hi!==r.lo)v.push(r.hi[k]);}}
+  else for(let i=Math.max(0,Math.floor(a*D.f));i<=Math.min(D.n-1,Math.ceil(b*D.f));i++)v.push(D.z[i]);
+  v.sort((x,y)=>x-y);
+  let lo=v.length?quant(v,.005):0,hi=v.length?quant(v,.995):0;
+  if(!(hi>lo)){lo-=1;hi+=1;}const pad=(hi-lo)*.12;
+  return {raw:!!raw,lo:lo-pad,hi:hi+pad*1.6};
 }
 const SNAP=0.25;
 function detailClick(e){
@@ -466,7 +490,7 @@ function detailClick(e){
 }
 
 // ---- navigation ----
-function setView(v){view=Math.max(0,Math.min(Math.max(0,D.dur-span),v));
+function setView(v,refit){if(refit)ys=null;view=Math.max(0,Math.min(Math.max(0,D.dur-span),v));
   const w=ov1-ov0;if(w<D.dur&&(view<ov0||view+span>ov1)){if(span>w){ov0=Math.max(0,view-span*.25);ov1=Math.min(D.dur,ov0+span*1.5);}else{let a=view+span/2-w/2;a=Math.max(0,Math.min(D.dur-w,a));ov0=a;ov1=a+w;}}
   drawAll();}
 function unclearTimes(){
@@ -479,7 +503,7 @@ function jumpUnclear(dir){
   const visibleEnd=view+span*0.9,visibleStart=view+span*0.1;
   let t=dir>0?u.find(v=>v>visibleEnd):[...u].reverse().find(v=>v<visibleStart);
   if(t===undefined)t=dir>0?u[0]:u[u.length-1];
-  setView(t-span/2);
+  setView(t-span/2,true);
 }
 
 // ---- phases + table ----
@@ -491,8 +515,6 @@ function resultRows(){
 const f1=v=>isFinite(v)?v.toFixed(1):'–';
 function renderTable(){
   $('blindMsg').style.display=blind?'block':'none';$('resBody').style.display=blind?'none':'';
-  const btn=$('blindBtn');btn.textContent='Blind review: '+(blind?'on':'off');btn.classList.toggle('on',blind);
-  updCombBtn();
   if(blind){$('tbl').innerHTML='';return;}
   const rows=[];
   rows.push(`<tr><th class="l"></th><th class="l">Phase</th><th title="breaths ÷ minutes">Breaths /min</th><th title="60 ÷ median interval between breaths; less sensitive to a missed or extra breath">Median /min</th><th>Breaths</th><th title="longest interval between two breaths, e.g. breath-holding">Longest gap (s)</th><th title="standard deviation of the intervals between breaths">Interval SD (s)</th><th>Start</th><th>End</th><th>Duration</th><th title="breaths near the size threshold, worth checking by eye">Unclear</th><th title="breaths you added or removed">Edits</th><th></th></tr>`);
@@ -510,7 +532,7 @@ $('tbl').addEventListener('change',e=>{const tr=e.target.closest('tr[data-k]');i
   if(f==='name')p.name=e.target.value||p.name;else{const v=parseT(e.target.value);if(isFinite(v))p[f]=Math.max(0,Math.min(D.dur,v));if(p.a>p.b)[p.a,p.b]=[p.b,p.a];}
   phases.sort((x,y)=>x.a-y.a);refresh();});
 $('tbl').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const k=+b.closest('tr').dataset.k,p=phases[k];
-  if(b.dataset.act==='del'){phases.splice(k,1);refresh();}else if(b.dataset.act==='go'){setView(p.a-2);}});
+  if(b.dataset.act==='del'){phases.splice(k,1);refresh();}else if(b.dataset.act==='go'){setView(p.a-2,true);}});
 
 // ---- export ----
 const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
@@ -527,13 +549,6 @@ function csvBreaths(){
   for(const b of B){const ph=phases.find(p=>b.t>=p.a&&b.t<p.b);lines.push([q(horseId),b.t.toFixed(2),b.src,b.src==='auto'&&b.r<P.thr+P.unc?1:0,ph?q(ph.name):''].join(','));}
   return lines.join('\n')+'\n';
 }
-// combined results across recordings, kept in this browser
-let combMem={};
-function loadComb(){let c;try{c=JSON.parse(localStorage.getItem('breathcounter:combined')||'{}');}catch(e){c=combMem;}
-  for(const k of Object.keys(c))if(c[k].fmt!==3)delete c[k];return c;}
-function saveComb(c){combMem=c;try{localStorage.setItem('breathcounter:combined',JSON.stringify(c));}catch(e){}}
-function updCombBtn(){const n=Object.keys(loadComb()).length;$('expComb').textContent=`Export combined CSV (${n})`;$('expComb').disabled=!n;}
-let clrArm=null;
 async function offer(name,text,mime){
   const msg=$('expMsg'),ta=$('copyOut');ta.style.display='none';msg.textContent='';
   if(downloads){try{await downloads.save({filename:name,data:text});msg.textContent='Saved '+name;return;}catch(e){}}
@@ -545,14 +560,9 @@ async function offer(name,text,mime){
 const base=()=>fileName.replace(/\.[^.]+$/,'');
 $('expRes').onclick=()=>offer(base()+'_results.csv',csvResults(),'text/csv');
 $('expBr').onclick=()=>offer(base()+'_breaths.csv',csvBreaths(),'text/csv');
-$('addComb').onclick=()=>{const c=loadComb();const had=!!c[fileName];c[fileName]={fmt:3,subject:horseId,settings:JSON.stringify(setCols()),lines:resultLines()};saveComb(c);updCombBtn();
-  $('copyOut').style.display='none';$('expMsg').textContent=`${had?'Updated':'Added'} ${horseId} (${fileName}). Combined file now holds ${Object.keys(c).length} recording(s). Re-add after further edits to update it.`;};
-$('expComb').onclick=()=>{const c=loadComb(),ks=Object.keys(c);if(!ks.length)return;
-  const sets=new Set(ks.map(k=>c[k].settings));
-  offer('breath_results_combined.csv',RES_HEAD+'\n'+ks.flatMap(k=>c[k].lines).join('\n')+'\n','text/csv').then(()=>{if(sets.size>1)$('expMsg').textContent+=' Warning: the recordings in the combined file were analysed with different detection settings (see the set_ columns).';});};
-$('clrComb').onclick=()=>{const b=$('clrComb');if(!clrArm){b.textContent='Click again to clear';clrArm=setTimeout(()=>{clrArm=null;b.textContent='Clear combined';},3000);return;}
-  clearTimeout(clrArm);clrArm=null;b.textContent='Clear combined';saveComb({});updCombBtn();$('expMsg').textContent='Combined results cleared.';};
-$('blindBtn').onclick=()=>{blind=!blind;try{localStorage.setItem('breathcounter:blind',blind?'1':'0');}catch(e){}if(D){drawAll();renderTable();}else{const b=$('blindBtn');b.textContent='Blind review: '+(blind?'on':'off');b.classList.toggle('on',blind);}};
+function setBlind(v){blind=v;$('blind').checked=v;try{localStorage.setItem('breathcounter:blind',v?'1':'0');}catch(e){}if(D){drawAll();renderTable();}}
+$('blind').onchange=e=>setBlind(e.target.checked);
+$('toSettings').onclick=e=>{e.preventDefault();const d=$('settings');d.open=true;d.scrollIntoView({behavior:'smooth',block:'start'});};
 $('horseId').addEventListener('change',e=>{horseId=e.target.value.trim()||base();e.target.value=horseId;save();});
 
 $('expSes').onclick=()=>offer(base()+'_session.json',JSON.stringify(session(),null,1),'application/json');
@@ -568,14 +578,14 @@ $('resetP').onclick=()=>{P={...DEF};syncParamInputs();run();};
 // ---- wiring ----
 $('file').onchange=e=>e.target.files[0]&&loadFile(e.target.files[0]);
 $('chan').onchange=e=>setChannel(e.target.value);
-const dz=$('drop');
+const dz=$('drop');dz.onclick=()=>$('file').click();
 ['dragenter','dragover'].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('hover');}));
 ['dragleave','drop'].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove('hover');}));
 document.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)loadFile(f);});
 $('prev').onclick=()=>setView(view-span*.8);
 $('next').onclick=()=>setView(view+span*.8);
 $('span').onchange=e=>setSpan(+e.target.value);
-function setRaw(v){showRaw=v;const b=$('rawBtn');b.textContent='Signal: '+(v?'raw':'filtered');b.classList.toggle('on',v);if(D)drawDetail();}
+function setRaw(v){showRaw=v;ys=null;const b=$('rawBtn');b.textContent='Signal: '+(v?'raw':'filtered');b.classList.toggle('on',v);if(D)drawDetail();}
 $('rawBtn').onclick=()=>setRaw(!showRaw);
 $('nextU').onclick=()=>jumpUnclear(1);$('prevU').onclick=()=>jumpUnclear(-1);
 $('addView').onclick=()=>addPhase(view,Math.min(D.dur,view+span));
@@ -591,7 +601,7 @@ $('det').addEventListener('wheel',e=>{if(!D)return;e.preventDefault();
   if(e.ctrlKey||e.metaKey){const c=$('det'),r=c.getBoundingClientRect(),t=view+(e.clientX-r.left-L)/(r.width-L-R)*span;setSpan(span*Math.exp(e.deltaY*0.003),t);}
   else setView(view+(e.deltaX||e.deltaY)/400*span);},{passive:false});
 bindOverview($('ov'));
-$('rate').addEventListener('click',e=>{const t=evT(e,$('rate'),ov0,ov1);setView(t-span/2);});
+$('rate').addEventListener('click',e=>{const t=evT(e,$('rate'),ov0,ov1);setView(t-span/2,true);});
 function zoomOv(fac,c){const T=D.dur,minW=Math.min(T,Math.max(20,span*1.5));let w=Math.max(minW,Math.min(T,(ov1-ov0)*fac));if(c===undefined)c=view+span/2;
   const r=(c-ov0)/(ov1-ov0||1);let a=c-r*w;a=Math.max(0,Math.min(T-w,a));ov0=a;ov1=a+w;drawAll();}
 function panOv(dt){const w=ov1-ov0;let a=Math.max(0,Math.min(D.dur-w,ov0+dt));ov0=a;ov1=a+w;drawAll();}
@@ -601,7 +611,7 @@ function panOv(dt){const w=ov1-ov0;let a=Math.max(0,Math.min(D.dur-w,ov0+dt));ov
 $('ovIn').onclick=()=>zoomOv(0.5);$('ovOut').onclick=()=>zoomOv(2);$('ovFit').onclick=()=>{ov0=0;ov1=D.dur;drawAll();};
 function setSpan(s,c){if(c===undefined)c=view+span/2;const r=(c-view)/span;span=Math.max(5,Math.min(D.dur,s));
   const sel=$('span');if(![...sel.options].some(o=>+o.value===Math.round(span))){const o=document.createElement('option');o.textContent=Math.round(span);sel.appendChild(o);[...sel.options].sort((a,b)=>a.value-b.value).forEach(o=>sel.appendChild(o));}
-  sel.value=Math.round(span);setView(c-r*span);}
+  sel.value=Math.round(span);setView(c-r*span,true);}
 $('detIn').onclick=()=>setSpan(span/2);$('detOut').onclick=()=>setSpan(span*2);
 document.addEventListener('keydown',e=>{if(!D||/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))return;
   if(e.key==='ArrowRight'){setView(view+span*.8);e.preventDefault();}else if(e.key==='ArrowLeft'){setView(view-span*.8);e.preventDefault();}
@@ -609,7 +619,7 @@ document.addEventListener('keydown',e=>{if(!D||/INPUT|SELECT|TEXTAREA/.test(docu
   else if((e.key==='r'||e.key==='R')&&!e.ctrlKey&&!e.metaKey&&!e.altKey)setRaw(!showRaw);});
 function resize(){drawAll();}
 window.addEventListener('resize',resize);
-{const b=$('blindBtn');b.textContent='Blind review: '+(blind?'on':'off');b.classList.toggle('on',blind);}
+$('blind').checked=blind;$('ver').textContent='v'+VERSION;$('detSet').style.display='none';
 try{const ro=new ResizeObserver(()=>{if(D)drawAll();});ro.observe($('app'));}catch(e){}
 </script>
 </body>

@@ -12,8 +12,8 @@ It runs entirely in your web browser. Recordings are **not uploaded** anywhere; 
 
 ## Quick start (5 minutes)
 
-1. **Open the app** and choose your `.wav` recording (or drag it onto the page).
-2. **Check the channel.** Multi-channel files show a channel selector at the top. The app remembers the last channel you used.
+1. **Open the app** and choose your `.wav` recording in the *Recording* section at the top (or drag it onto the page).
+2. **Check the channel.** Multi-channel files show a channel selector next to the file name. The app remembers the last channel you used.
 3. **Validate the breaths** in the detail plot (middle):
    - Press **Next unclear ▶** (or the `N` key) to jump to the next doubtful breath.
    - **Click a mark** to remove a wrong breath (click again to restore it).
@@ -27,20 +27,30 @@ It runs entirely in your web browser. Recordings are **not uploaded** anywhere; 
 
 | Area | What it shows | What you can do |
 |---|---|---|
+| **Recording** | File name, number of channels, sampling rate, duration | Choose or drop a file · pick the channel |
 | **Overview** | The whole recording (filtered), phases as coloured bands, black box = what the detail plot shows | Drag = new phase · click = jump there · wheel = zoom · Shift + wheel = pan · −/+/Fit buttons |
 | **Breath rate** | Grey dots = 60 / interval between two breaths; black line = breaths counted in a rolling 60 s; dashed = phase average | Click = jump there |
-| **Detail plot** | The signal with every detected breath (filtered, or raw: see below) | Click to edit breaths, drag to create a phase · wheel = scroll · Ctrl/⌘ + wheel = zoom · ← → keys · **Signal** button or `R` = filtered/raw |
+| **Detail** | The signal with every detected breath (filtered, or raw: see below) | Click to edit breaths, drag to create a phase · wheel = scroll · Ctrl/⌘ + wheel = zoom · ← → keys · **Signal** button or `R` = filtered/raw |
 | **Phases and results** | One row per phase plus the whole recording | Rename, edit times, view, delete, export |
+| **Settings** (bottom) | Blind review and detection settings | Click *Settings* to open |
+
+The app's version is shown at the bottom of the page.
 
 ### Breath marks
 
 | Mark | Meaning |
 |---|---|
-| ▼ red | Breath detected automatically |
+| ▼ blue | Breath detected automatically |
 | ▼ orange | Breath detected, but close to the size threshold (please check) |
 | ▽ orange outline | Possible breath just below the threshold, **not counted** unless you click it |
 | ▼ green | Breath you added |
 | ✕ grey | Breath you removed (click to restore) |
+
+The colours are chosen to stay distinguishable for colour-blind viewers.
+
+### Height scale of the detail plot
+
+The vertical scale stays fixed while you scroll (wheel, ← → keys, ◀ ▶), so the trace doesn't jump. It re-fits when you zoom, when you jump somewhere (*Next unclear*, clicking the overview or rate graph, *View* on a phase) and when you switch between filtered and raw. The fit uses the visible window plus one window on either side, ignoring extreme spikes, so very large peaks can run off the top; zoom or jump to re-fit.
 
 ### Filtered or raw signal
 
@@ -48,7 +58,7 @@ The detail plot normally shows the **filtered** signal: slow drift and fast nois
 
 - The breath marks stay at the same times in both views, and you can add and remove breaths in either.
 - Detection, the snapping of added breaths, results and exports always use the filtered signal. Switching the view never changes a result.
-- Each view has its own vertical scale, fitted to what is visible. Zoomed far out, the raw view draws the lowest and highest value per pixel, so short spikes stay visible.
+- Each view has its own vertical scale. In the raw view the scale also re-fits when the signal drifts out of view. Zoomed far out, the raw view draws the lowest and highest value per pixel, so short spikes stay visible.
 
 ## Results columns
 
@@ -66,15 +76,11 @@ Short phases give unstable rates: 30 s at 12 breaths/min is only 6 breaths, so o
 
 ## Blind review
 
-Turn on **Blind review** (top of the page) to hide all phases and results while validating breaths. The person checking breaths then can't be influenced by knowing which stretch belongs to which condition. Turn it off to see the results. Phases can't be created while blind review is on.
+Turn on **Blind review** under *Settings* (bottom of the page) to hide all phases and results while validating breaths. The person checking breaths then can't be influenced by knowing which stretch belongs to which condition. Turn it off to see the results. Phases can't be created while blind review is on.
 
 ## Several recordings
 
-1. Set the **Subject ID** (defaults to the file name).
-2. When a recording is finished, click **Add to combined results**.
-3. Repeat for each recording, then **Export combined CSV (n)** for one file with all subjects.
-
-The combined list is kept in this browser only. Export it regularly, and keep each recording's own results CSV as the safe copy. If recordings were analysed with different detection settings, the app warns you on export.
+Set the **Subject ID** (defaults to the file name) and export each recording's results CSV. Every row contains the subject ID, file, channel, settings and version, so the files can simply be stacked in Excel, R or Python.
 
 ## Exported files
 
@@ -87,7 +93,7 @@ The combined list is kept in this browser only. Export it regularly, and keep ea
 
 ## Detection settings
 
-Under *Detection settings* at the bottom. The defaults were tuned on a resting, standing horse (about 8–30 breaths/min). Your manual edits are kept when you change settings.
+Under *Settings → Detection* at the bottom (shown once a recording is loaded). The defaults were tuned on a resting, standing horse (about 8–30 breaths/min). Your manual edits are kept when you change settings.
 
 | Setting | Default | What it does |
 |---|---|---|
@@ -109,14 +115,23 @@ Under *Detection settings* at the bottom. The defaults were tuned on a resting, 
 
 ## Use it offline
 
-Download [`index.html`](index.html) from this repository and open it in your browser. Everything works the same without internet.
+Download [`index.html`](index.html) from this repository, or the HTML file of a release (see below), and open it in your browser. Everything works the same without internet.
+
+## Versions
+
+The version (e.g. `v1.2.0`) is shown at the bottom of the app and written into every results row (`tool_version`).
+
+- **Earlier versions online:** https://jonasprobst.github.io/rel-breathanalyser/v/ lists every published version; each one stays available at its own address, e.g. `…/rel-breathanalyser/v/1.2.0/`.
+- **Download a version:** [Releases](https://github.com/jonasprobst/rel-breathanalyser/releases) has the HTML file of each version and what changed.
+
+If a new version changes your results, you can reopen the version you used before and compare. Sessions saved with one version can be loaded in another.
 
 ## Limitations
 
 - Counts breaths from **one** belt signal. It doesn't measure tidal volume, chest/abdomen synchrony or inspiration/expiration timing.
 - There is **no automatic movement detection**. Movement, sniffing, chewing and similar disturbances must be judged by eye.
 - Detection is a support tool. The validated result is what you check and correct.
-- Saved edits and the combined list live in your browser's storage. Use *Save session* and the CSV exports as your permanent record.
+- Saved edits live in your browser's storage. Use *Save session* and the CSV exports as your permanent record.
 
 ## Questions, bugs, ideas
 

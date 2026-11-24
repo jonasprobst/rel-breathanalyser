@@ -43,7 +43,7 @@ It was 30 s (the belt settles in the first ~20 s of the reference recording). Ch
 
 ## Settings written into every results row
 
-So results from different recordings can be compared and reviewers can see how they were produced. The combined export warns if settings differ between recordings.
+So results from different recordings can be compared and reviewers can see how they were produced, and per-recording CSVs can be stacked without losing that information.
 
 ## Subject ID instead of Horse ID
 
@@ -56,6 +56,16 @@ First: snap to the highest point within ±0.75 s (felt like an offset to the rig
 ## Raw signal view (2026-11-19)
 
 Researchers wanted to inspect the original data behind a doubtful breath. The detail plot has a Filtered/Raw **switch** (not an overlay: raw has an offset and drift, so one shared scale would squash the breaths, and two scales in one plot mislead). "Raw" means the **original samples at the file's sampling rate**, not the 20 Hz average, so nothing is hidden. Only the detail plot switches; the overview stays filtered so navigation looks the same. It is a view only and not saved with the session: results never depend on it. `VERSION` went to 1.1.0 as a feature release; results are identical to 1.0.0.
+
+## UI clean-up and releases (2026-11-24, v1.2.0)
+
+- **Removed: combined results** (add to combined / export combined / clear combined, kept in browser storage). It was never requested; per-recording results CSVs already carry subject, file, settings and version and can be stacked. Don't reintroduce without asking. The old `breathcounter:combined` storage key is left alone, not deleted.
+- **Marker colours:** red vs orange was hard to tell apart on screen. Now blue (breath) / orange (unclear) / green (added), from the Okabe–Ito palette, which stays distinguishable with colour-vision deficiencies.
+- **Blind review moved into Settings** to keep the main UI clean. It persists, so it rarely needs touching; the results card says it's on and links to Settings.
+- **Channel stays visible** (in the Recording section, next to the file name), deliberately *not* in Settings: a wrong channel silently makes every result wrong, the default is a guess (last channel), and it must be checked right after loading.
+- **Recording section** under the header: file button, drop zone, hint and file info in one place. Version in a footer.
+- **Steady detail height scale:** it used to re-fit to every window, so the trace jumped while scrolling. Now fixed while scrolling, re-fitted on zoom, jumps and filtered/raw switch.
+- **Versioned releases:** tag `v<VERSION>`, GitHub Release with the HTML attached (offline lab PCs), and a permanent copy on the site under `v/<VERSION>/`, so a researcher can go back to the version a study was analysed with if a later version changes results.
 
 ## Name
 
