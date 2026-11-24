@@ -29,7 +29,7 @@ It runs entirely in your web browser. Recordings are **not uploaded** anywhere; 
 |---|---|---|
 | **Overview** | The whole recording (filtered), phases as coloured bands, black box = what the detail plot shows | Drag = new phase · click = jump there · wheel = zoom · Shift + wheel = pan · −/+/Fit buttons |
 | **Breath rate** | Grey dots = 60 / interval between two breaths; black line = breaths counted in a rolling 60 s; dashed = phase average | Click = jump there |
-| **Detail plot** | The signal with every detected breath | Click to edit breaths, drag to create a phase · wheel = scroll · Ctrl/⌘ + wheel = zoom · ← → keys |
+| **Detail plot** | The signal with every detected breath (filtered, or raw: see below) | Click to edit breaths, drag to create a phase · wheel = scroll · Ctrl/⌘ + wheel = zoom · ← → keys · **Signal** button or `R` = filtered/raw |
 | **Phases and results** | One row per phase plus the whole recording | Rename, edit times, view, delete, export |
 
 ### Breath marks
@@ -41,6 +41,14 @@ It runs entirely in your web browser. Recordings are **not uploaded** anywhere; 
 | ▽ orange outline | Possible breath just below the threshold, **not counted** unless you click it |
 | ▼ green | Breath you added |
 | ✕ grey | Breath you removed (click to restore) |
+
+### Filtered or raw signal
+
+The detail plot normally shows the **filtered** signal: slow drift and fast noise are removed, and this is the signal the breaths are detected on. Press the **Signal** button (or the `R` key) to see the **raw** signal instead: the original samples of the selected channel, exactly as stored in the file, at the full sampling rate and without any filtering or averaging. Use it when you doubt a breath and want to see what the recording really looked like, e.g. to tell a movement spike or a drifting belt from a breath.
+
+- The breath marks stay at the same times in both views, and you can add and remove breaths in either.
+- Detection, the snapping of added breaths, results and exports always use the filtered signal. Switching the view never changes a result.
+- Each view has its own vertical scale, fitted to what is visible. Zoomed far out, the raw view draws the lowest and highest value per pixel, so short spikes stay visible.
 
 ## Results columns
 
