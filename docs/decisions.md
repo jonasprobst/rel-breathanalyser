@@ -66,6 +66,7 @@ Researchers wanted to inspect the original data behind a doubtful breath. The de
 - **Recording section** under the header: file button, drop zone, hint and file info in one place. Version in a footer.
 - **Steady detail height scale:** it used to re-fit to every window, so the trace jumped while scrolling. Now steady while scrolling and re-fitted on zoom, jumps and filtered/raw switch. A first version ignored the extreme 0.5 % to keep breaths large, which cut off a large spike in testing; now the scale fits everything and only grows while scrolling. Never hide signal.
 - **Offline download link** in the footer: one click saves the running version as `breathanalyser-v<VERSION>.html`. Researchers shouldn't need to navigate GitHub to get an offline copy. It re-fetches the page from the site on click (same file, no data sent), which is the one accepted exception to "no network requests"; GitHub Releases stay as the archive.
+- **No y axis on the detail plot** (decided after comparing none / gridlines / gridlines + numbers). The values are in the device's own units, which vary with belt, animal and gain, so numbers or gridlines invite reading meaning into them. The task is validating peaks on the curve, whatever the value. Don't add one without asking.
 - **Versioned releases:** tag `v<VERSION>`, GitHub Release with the HTML attached (offline lab PCs), and a permanent copy on the site under `v/<VERSION>/`, so a researcher can go back to the version a study was analysed with if a later version changes results.
 
 ## Name
