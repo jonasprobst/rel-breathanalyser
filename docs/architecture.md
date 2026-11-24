@@ -1,6 +1,6 @@
 # Architecture
 
-Breathanalyser is a **single self-contained HTML file** (`index.html`): markup, CSS and JavaScript inline, no build step, no dependencies, no network calls. This is deliberate: researchers can open it from GitHub Pages, from a claude.ai artifact, or from a downloaded copy on an offline lab computer, and it behaves the same everywhere.
+Breathanalyser is a **single self-contained HTML file** (`index.html`): markup, CSS and JavaScript inline, no build step, no dependencies, no network calls (except the user-clicked offline download link, which re-fetches the page itself). This is deliberate: researchers can open it from GitHub Pages, from a claude.ai artifact, or from a downloaded copy on an offline lab computer, and it behaves the same everywhere.
 
 ## File layout
 
@@ -14,7 +14,7 @@ docs/
   algorithm.md             signal processing and breath detection
   decisions.md             why things are the way they are (and what was removed)
   development.md           run, test, deploy, backlog
-  screenshot.png           used by the README
+  screenshot.png, detail.png  README images (how to regenerate: development.md)
 tests/
   core.test.js             Node test of the processing core on a synthetic recording
   make-sample-wav.js       generates the synthetic test recording
@@ -61,7 +61,8 @@ Global state (plain variables, no framework):
 | `ov0`, `ov1` | Overview/rate graph zoom range |
 | `blind` | Blind review on/off (hides phases and results everywhere). Set with the checkbox in Settings |
 | `showRaw`, `rawC` | Detail plot shows raw instead of filtered signal (checkbox in Settings or key R; not persisted); cache of the last raw window read |
-| `ys` | Detail plot vertical scale `{raw, lo, hi}`; `null` = re-fit on the next draw |
+| `ys` | Detail plot vertical scale (see below); `null` = re-fit on the next draw |
+| `actP` | Phase currently shown/highlighted in the table |
 | `horseId` | Subject ID (variable name is historical; the UI and exports say "subject") |
 
 Flow:
@@ -81,21 +82,27 @@ Three `<canvas>` elements drawn with the 2D API. `setup(c)` sizes each canvas fo
 
 Shared x-axis margins: `L = 56`, `R = 10` px. Every mouse→time conversion uses the same margins.
 
-Page layout, top to bottom: header (title, Help link) → *Recording* card (status line with file info, channel selector, file button, drop zone before a file is loaded) → `#app` (Overview, Detail (toolbar: ◀ ▶ left, zoom out / window length / zoom in right; the window's breath rate is drawn on the canvas in a reserved 16 px strip at the top, `TOP`, so it never covers marks; hidden in blind review), Phases and results (click/focus a row → `showPhase`, shows it in the detail plot and highlights the row via `actP`; bin icon deletes; *Session* row with Save / Load / Clear at the bottom); hidden until a file is loaded) → *Settings* card (`<details id="settings">`: *Display* (raw signal checkbox `#rawChk`, also key R) and *Review* (blind review) always; the detection inputs `#detSet` only once a file is loaded, because loading resets the parameters) → footer with `VERSION`.
+Page layout, top to bottom:
+- Header: title, purpose line, Help.
+- *Recording* card: file info, channel, file button; drop zone until a file is loaded.
+- `#app` (hidden until a file is loaded): Overview + rate graph, Detail, Phases and results (with the *Session* row: Save / Load / Clear).
+- *Settings* (`<details id="settings">`): Display (`#rawChk`), Review (`#blind`), Detection (`#detSet`, shown only once a file is loaded, because loading resets the parameters).
+- Footer: version, help, offline download, earlier versions.
 
-Detail plot vertical scale: kept in `ys = {raw, dlo, dhi, lo, hi}` (data range, and padded plot range) so it stays steady while scrolling. `ys = null` forces a re-fit to the min/max of the visible window. Otherwise each draw only *grows* `dlo/dhi` to include the visible min/max, so nothing is ever cut off (an earlier version fitted to 0.5–99.5 % quantiles and cut off spikes). It is reset on zoom (`setSpan`), jumps (`setView(v, true)`: rate-graph click, phase row click; overview click), raw/filtered switch, `run()`, channel change and file load. Plain `setView(v)` (wheel, arrow keys, ◀ ▶) keeps it. In raw view it also re-fits when the scale range has grown to more than 4× the visible range (offset drift while scrolling). Marks are clamped to stay inside the plot.
+Detail plot:
+- **Vertical scale** `ys = {raw, dlo, dhi, lo, hi}`. `ys = null` → re-fit to the visible min/max on the next draw: on zoom (`setSpan`), jumps (`setView(v, true)`, overview/rate click, phase row), raw switch, `run()`, channel change, file load. Otherwise each draw only *grows* `dlo/dhi`, so nothing is cut off. Raw view also re-fits when the range exceeds 4× the visible range (offset drift).
+- **Top strip** `TOP = 16` px is reserved for the window rate label; marks are clamped below it.
+- **Raw view** (`showRaw`): draws `readChannelRange(W, chan, …)` (one bin per pixel) instead of `D.z`, cached in `rawC`. Display only: detection, snapping, stats and exports use `D.z`.
+- **Colours** (Okabe–Ito): auto `#0072b2`, unclear `#e69f00`, added `#009e73`, removed grey. CSS tokens `--brk`, `--unc`, `--add` for the legend.
+- **Window select**: fixed options 10/30/60/120/300 s; other lengths are shown via the hidden `#spanCustom` option.
 
-Breath mark colours (Okabe–Ito, colour-blind safe): auto `#0072b2` blue, unclear `#e69f00` orange, added `#009e73` green, removed grey. CSS tokens `--brk`, `--unc`, `--add` for the legend; the canvas uses the same hex values.
-
-Raw view (`showRaw`): `drawDetail()` draws `readChannelRange(W, chan, …)` for the visible window instead of `D.z`, with one bin per plot pixel, and puts the marks on that trace. It is display only: detection, click snapping, statistics and exports keep using `D.z`. The result is cached in `rawC` (keyed by file, channel, window and width) because the detail plot redraws on every mouse move while dragging.
-
-Phase drags (overview and detail) snap both edges with `snapT(t, visibleSeconds, e)`: step `snapStep` = 1 s (≤ 70 s visible), 5 s (≤ 400 s), 10 s (≤ 1200 s), else 30 s; Alt/Option = exact. The detail *Window* select has fixed choices (10, 30, 60, 120, 300 s); other lengths from wheel/button zoom are shown through one `hidden` option (`#spanCustom`) instead of being added to the list.
+Phases:
+- Drags in overview and detail snap both edges with `snapT(t, visibleSeconds, e)`: 1 s (≤ 70 s visible), 5 s (≤ 400 s), 10 s (≤ 1200 s), else 30 s. Alt/Option = exact.
+- Clicking or focusing a table row calls `showPhase` (moves the detail plot, highlights via `actP`). The bin icon deletes without jumping.
 
 Mouse interaction on the detail plot: `mousedown` → `mousemove` → `mouseup`. A movement of more than 5 px is a drag (creates a phase if ≥ 1 s and blind review is off). Otherwise it's a click and goes to `detailClick`.
 
 ### Persistence
-
-*Clear session* (inline confirmation, no `confirm()` pop-up because sandboxed frames block modals) removes `localStorage[key()]` and resets `P`, `phases`, `E` and `horseId` to a fresh load, then `run()`. Channel and blind review preferences are kept.
 
 | What | Where |
 |---|---|
@@ -105,7 +112,8 @@ Mouse interaction on the detail plot: `mousedown` → `mousemove` → `mouseup`.
 
 The `breathcounter:` key prefix is the app's former name. It is kept so existing users don't lose saved work. All storage access is wrapped in `try/catch`: storage may be missing (sandboxed iframes, private mode).
 
-A former `breathcounter:combined` key (combined results, removed in 1.2.0) may still exist in some browsers; nothing reads it.
+- *Session → Clear* removes `localStorage[key()]` and resets `P`, `phases`, `E`, `horseId` (channel and blind review are kept). Inline confirmation, no `confirm()`: sandboxed frames block modals.
+- A former `breathcounter:combined` key (removed in 1.2.0) may still exist in some browsers; nothing reads it.
 
 ### Export
 
@@ -120,7 +128,11 @@ The footer link *download for offline use* (`#dlSelf`) is an `<a download="breat
 
 ### CSV format
 
-Exports are written for R's `read.csv()` with default options on any platform, including Windows R < 4.2 (native Windows-1252): `q()` quotes text and passes it through `ascii()` (transliteration table `TRANSLIT`, then accent stripping via NFD, other non-ASCII → `_`); missing numbers and phases are `NA` (`n2()`); no BOM; CRLF line endings (`EOL`, RFC 4180). Checked against *R Data Import/Export* (R 4.6.2): §1.1.1 Encodings ("Unless the file … is entirely in ASCII, it is usually necessary to know how it was encoded"; BOMs "cause problems"), §1.2 (RFC 4180 CSV uses commas and CRLF), §2.1 (quotes escaped by doubling when a separator is given; `NA` is the default missing value). Session JSON is not affected and keeps full Unicode.
+Written for R's `read.csv()` with default options on any platform, incl. Windows R < 4.2 (see `decisions.md`):
+- `q()` quotes text and passes it through `ascii()` (`TRANSLIT` table, then accent stripping; other non-ASCII → `_`). Quotes are doubled.
+- Missing numbers and phases → `NA` (`n2()`).
+- No BOM, CRLF line endings (`EOL`).
+- Session JSON is not affected and keeps full Unicode.
 
 ### Version
 

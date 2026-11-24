@@ -57,30 +57,29 @@ First: snap to the highest point within ±0.75 s (felt like an offset to the rig
 
 Researchers wanted to inspect the original data behind a doubtful breath. The detail plot has a Filtered/Raw **switch** (not an overlay: raw has an offset and drift, so one shared scale would squash the breaths, and two scales in one plot mislead). "Raw" means the **original samples at the file's sampling rate**, not the 20 Hz average, so nothing is hidden. Only the detail plot switches; the overview stays filtered so navigation looks the same. It is a view only and not saved with the session: results never depend on it. `VERSION` went to 1.1.0 as a feature release; results are identical to 1.0.0.
 
-## UI clean-up and releases (2026-11-24, v1.2.0)
+## v1.2.0: UI clean-up, R-safe exports, releases (2026-11-24)
 
-- **Removed: combined results** (add to combined / export combined / clear combined, kept in browser storage). It was never requested; per-recording results CSVs already carry subject, file, settings and version and can be stacked. Don't reintroduce without asking. The old `breathcounter:combined` storage key is left alone, not deleted.
-- **Marker colours:** red vs orange was hard to tell apart on screen. Now blue (breath) / orange (unclear) / green (added), from the Okabe–Ito palette, which stays distinguishable with colour-vision deficiencies.
-- **Blind review moved into Settings** to keep the main UI clean. It persists, so it rarely needs touching; the results card says it's on and links to Settings.
-- **Channel stays visible** (in the Recording section, next to the file name), deliberately *not* in Settings: a wrong channel silently makes every result wrong, the default is a guess (last channel), and it must be checked right after loading.
-- **Recording section** under the header: file button, drop zone, hint and file info in one place. Version in a footer.
-- **Steady detail height scale:** it used to re-fit to every window, so the trace jumped while scrolling. Now steady while scrolling and re-fitted on zoom, jumps and filtered/raw switch. A first version ignored the extreme 0.5 % to keep breaths large, which cut off a large spike in testing; now the scale fits everything and only grows while scrolling. Never hide signal.
-- **Offline download link** in the footer: one click saves the running version as `breathanalyser-v<VERSION>.html`. Researchers shouldn't need to navigate GitHub to get an offline copy. It re-fetches the page from the site on click (same file, no data sent), which is the one accepted exception to "no network requests"; GitHub Releases stay as the archive.
-- **No y axis on the detail plot** (decided after comparing none / gridlines / gridlines + numbers). The values are in the device's own units, which vary with belt, animal and gain, so numbers or gridlines invite reading meaning into them. The task is validating peaks on the curve, whatever the value. Don't add one without asking.
-- **Less on-screen help text:** hints under/next to the plots (wheel/zoom, "shaded bands = phases", "showing …", the detail help paragraph) were removed to keep the UI clean; the README has the instructions.
-- **Window rate inside the detail plot**, small, top-right, on a faint grey pill ("16.0 breaths/min"). Preferred over a chip in the toolbar; a first, larger in-plot label covered breath marks, so the plot now reserves a thin strip at the top for it. Hidden in blind review (it is a result).
-- **Clear session** below the exports, with an inline warning rather than a browser pop-up (modals are blocked in sandboxed frames).
-- **Removed: jump to next/previous unclear** (buttons and N/P keys). Not needed; unclear breaths are still marked orange and counted per phase. Don't reintroduce without asking.
-- **Icons without dependencies:** zoom buttons are inline-SVG magnifiers (+/−), phase delete is an inline-SVG bin. No icon fonts or libraries.
-- **Phase rows are the navigation:** clicking (or tabbing into) a phase row shows it in the detail plot and highlights the row; the *View* button was removed.
-- **Session controls together** (Save / Load / Clear) at the bottom of *Phases and results*: rarely used, so out of the way.
-- **Raw/filtered switch moved into Settings → Display** (key R still works); the plot labels the raw view so it's obvious when it's on.
-- **Phase edges snap** to round times depending on the zoom level (1/5/10/30 s), Alt/Option for exact; phases are usually reported in round times.
-- **Window lengths:** fixed list 10, 30, 60, 120, 300 s; zooming to other lengths shows the number without growing the list.
-- **Removed: export text box.** Exports used to also show their content in a text box (a fallback for sandboxed frames); it cluttered the page. Clipboard copy remains as a silent fallback when a download can't be created.
-- **Header:** one-line purpose statement in the centre, a more visible *Help* button; *help* also in the footer. Icons drawn with thinner lines.
-- **CSV exports safe for R on Windows:** researchers analyse in R, often on Windows. Older Windows R (< 4.2) reads files in Windows-1252, so UTF-8 accents would be garbled, and a BOM would end up in the first column name. So exports are plain ASCII (accents transliterated), `NA` for missing values, no BOM. `read.csv()` works with no options. CRLF line endings as in RFC 4180. Checked against the R manual *R Data Import/Export* (sections 1.1.1, 1.2, 2.1). Trade-off: accents are lost in the CSV only; the app and session file keep them.
-- **Versioned releases:** tag `v<VERSION>`, GitHub Release with the HTML attached (offline lab PCs), and a permanent copy on the site under `v/<VERSION>/`, so a researcher can go back to the version a study was analysed with if a later version changes results.
+Removed on purpose (don't reintroduce without asking):
+- **Combined results** (multi-recording store in the browser). Never requested; per-recording results CSVs can be stacked.
+- **Jump to next/previous unclear** (buttons, N/P keys). Orange marks and the *Unclear* column are enough.
+- **On-screen help texts** and the export text box. The README is the help.
+- **Y axis on the detail plot** (compared none / gridlines / numbers). Values are device units that vary with belt, animal and gain; the task is judging peaks, not values.
+
+Changed:
+- **Mark colours** blue / orange / green (Okabe–Ito, colour-blind safe). Red vs orange was hard to tell apart.
+- **Channel stays visible** next to the file name, not in Settings: a wrong channel silently makes every result wrong.
+- **Settings** hold the rarely used switches: raw signal, blind review, detection.
+- **Detail height scale** stays steady while scrolling and re-fits on zoom/jumps. It only grows, never cuts off signal (a first version cut off a spike).
+- **Window rate** small in the plot's top-right corner, in its own strip so it never covers marks. Hidden in blind review.
+- **Phase rows navigate** (click = show in detail plot); bin icon deletes. Icons are inline SVG, no libraries.
+- **Phase edges snap** to round times (1/5/10/30 s by zoom level), Alt/Option exact.
+- **Window lengths** fixed to 10/30/60/120/300 s; other zoom levels show their number without growing the list.
+- **Session controls** (Save / Load / Clear) together at the bottom of the results card. Clear asks inline, not via a pop-up (blocked in sandboxed frames).
+
+Exports and releases:
+- **CSV safe for R on Windows**: ASCII text (accents transliterated), `NA` for missing values, no BOM, CRLF. `read.csv()` needs no options, also on Windows R < 4.2 (Windows-1252). Based on *R Data Import/Export* §1.1.1, §1.2, §2.1. Trade-off: accents are lost in CSVs only.
+- **Versioned releases**: tag `v<VERSION>`, GitHub Release with the HTML attached, permanent site copy under `v/<VERSION>/`, so a study can go back to the version it was analysed with.
+- **Offline download link** in the footer (website only). It re-fetches the page itself on click: the one accepted network request (no data sent).
 
 ## Name
 

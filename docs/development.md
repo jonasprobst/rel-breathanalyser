@@ -5,8 +5,11 @@
 Open `index.html` in a browser. That's it. For a WAV to test with, generate the synthetic sample:
 
 ```bash
-node tests/make-sample-wav.js sample.wav     # 5 min, 3 channels, 1000 Hz, breathing on channel 3
+node tests/make-sample-wav.js sample.wav             # 5 min, 3 channels, 1000 Hz, breathing on channel 3
+node tests/make-sample-wav.js example.wav --shallow  # same with some shallow breaths (orange marks); used for the README images
 ```
+
+README images (`docs/screenshot.png`, `docs/detail.png`): load `example.wav`, phases Baseline 0:00–1:30 / Stimulus –3:20 / Rest –5:00, Subject ID "Horse 1", one breath added and one removed around 0:15–0:45. Screenshot at 1280 px width, device scale 2.
 
 `*.wav` files are git-ignored. **Never commit real recordings.**
 
@@ -22,7 +25,7 @@ UI changes: test manually in a browser, at a narrow width (≈ 500 px) and on a 
 
 ## Deploy to GitHub Pages
 
-The site is served from the `gh-pages` branch, which contains only `index.html` and `.nojekyll`:
+The site is served from the `gh-pages` branch (`index.html`, `.nojekyll`, `v/<version>/`):
 
 ```bash
 scripts/deploy-pages.sh            # publishes the current index.html from main
@@ -48,8 +51,8 @@ Versions before 1.2.0 were not tagged. To add 1.1.0 afterwards: `git tag -a v1.1
 - Keep the core block DOM-free and testable in Node.
 - Times are stored in **seconds** (floats), never sample indices, so edits survive parameter changes.
 - Bump `VERSION` in `index.html` when results could change, and release it (see above).
-- When changing results columns, update `RES_HEAD`, `resultLines()` and the README's "Results columns" and "Exported files".
-- Keep the README for researchers (no code), and these docs for developers.
+- When changing results columns, update `RES_HEAD`, `resultLines()` and the README's *Results* and *Exported files* tables.
+- Keep the README for researchers: short, by importance, tables over prose. Technical details go here in `docs/`.
 - Record notable decisions or removals in `decisions.md`.
 
 ## Backlog / ideas
