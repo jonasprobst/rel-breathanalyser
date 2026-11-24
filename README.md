@@ -91,6 +91,16 @@ Set the **Subject ID** (defaults to the file name) and export each recording's r
 
 **`<file>_breaths.csv`**: one row per breath: `subject_id, time_s, source (auto/manual), unclear (0/1), phase`.
 
+**Opening the CSVs:** plain comma-separated UTF-8 text with a header row, decimal point `.`, text in quotes. Empty numeric cells (e.g. *Median /min* for a phase with too few breaths) are read as missing values.
+
+```r
+res <- read.csv("sample_results.csv", fileEncoding = "UTF-8")
+br  <- read.csv("sample_breaths.csv",  fileEncoding = "UTF-8", na.strings = c("", "NA"))
+all <- do.call(rbind, lapply(list.files(pattern = "_results\\.csv$"), read.csv, fileEncoding = "UTF-8"))  # stack all recordings
+```
+
+`fileEncoding = "UTF-8"` keeps accented letters in phase names correct on older R versions on Windows. In the breaths file, `phase` is empty for breaths outside any phase; `na.strings` turns that into `NA`. `readr::read_csv()` works too, with no options needed.
+
 **`<file>_session.json`**: phases, your manual edits, settings and channel. Load it again with *Load session*.
 
 ## Detection settings
