@@ -150,7 +150,7 @@
     </details>
   </div>
 </main>
-<footer>Breathanalyser <span id="ver"></span> · <a href="https://github.com/jonasprobst/rel-breathanalyser/releases" target="_blank" rel="noopener">earlier versions</a></footer>
+<footer>Breathanalyser <span id="ver"></span><span id="dlWrap" style="display:none"> · <a id="dlSelf" href="#" title="Save this version as one HTML file. Open it in a browser to use the app without internet.">download for offline use</a></span> · <a href="https://github.com/jonasprobst/rel-breathanalyser/releases" target="_blank" rel="noopener">earlier versions</a></footer>
 
 <script id="core">
 // ---------- Pure signal-processing core (no DOM) ----------
@@ -620,6 +620,10 @@ document.addEventListener('keydown',e=>{if(!D||/INPUT|SELECT|TEXTAREA/.test(docu
 function resize(){drawAll();}
 window.addEventListener('resize',resize);
 $('blind').checked=blind;$('ver').textContent='v'+VERSION;$('detSet').style.display='none';
+// offline download: only on the website (a downloaded copy is already offline; inside a frame downloads may be blocked).
+// Re-downloads this same page from the site, only when clicked; no recording data is involved.
+{let top=true;try{top=window.top===window;}catch(e){top=false;}
+  if(/^https?:$/.test(location.protocol)&&top){const a=$('dlSelf');a.href=location.href.split('#')[0];a.download=`breathanalyser-v${VERSION}.html`;$('dlWrap').style.display='';}}
 try{const ro=new ResizeObserver(()=>{if(D)drawAll();});ro.observe($('app'));}catch(e){}
 </script>
 </body>

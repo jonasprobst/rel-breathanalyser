@@ -65,6 +65,7 @@ Researchers wanted to inspect the original data behind a doubtful breath. The de
 - **Channel stays visible** (in the Recording section, next to the file name), deliberately *not* in Settings: a wrong channel silently makes every result wrong, the default is a guess (last channel), and it must be checked right after loading.
 - **Recording section** under the header: file button, drop zone, hint and file info in one place. Version in a footer.
 - **Steady detail height scale:** it used to re-fit to every window, so the trace jumped while scrolling. Now fixed while scrolling, re-fitted on zoom, jumps and filtered/raw switch.
+- **Offline download link** in the footer: one click saves the running version as `breathanalyser-v<VERSION>.html`. Researchers shouldn't need to navigate GitHub to get an offline copy. It re-fetches the page from the site on click (same file, no data sent), which is the one accepted exception to "no network requests"; GitHub Releases stay as the archive.
 - **Versioned releases:** tag `v<VERSION>`, GitHub Release with the HTML attached (offline lab PCs), and a permanent copy on the site under `v/<VERSION>/`, so a researcher can go back to the version a study was analysed with if a later version changes results.
 
 ## Name

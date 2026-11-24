@@ -115,14 +115,17 @@ Under *Settings → Detection* at the bottom (shown once a recording is loaded).
 
 ## Use it offline
 
-Download [`index.html`](index.html) from this repository, or the HTML file of a release (see below), and open it in your browser. Everything works the same without internet.
+1. Open the app and click **download for offline use** at the bottom of the page. This saves one file, e.g. `breathanalyser-v1.2.0.html`.
+2. Copy it to the lab computer (USB stick, network drive, e-mail) and double-click it. It opens in the browser and works exactly the same without internet.
+
+The file name contains the version, so you can keep several versions side by side. To get an earlier version, open it from the list of earlier versions (see below) and download it from there in the same way.
 
 ## Versions
 
 The version (e.g. `v1.2.0`) is shown at the bottom of the app and written into every results row (`tool_version`).
 
 - **Earlier versions online:** https://jonasprobst.github.io/rel-breathanalyser/v/ lists every published version; each one stays available at its own address, e.g. `…/rel-breathanalyser/v/1.2.0/`.
-- **Download a version:** [Releases](https://github.com/jonasprobst/rel-breathanalyser/releases) has the HTML file of each version and what changed.
+- **Download a version:** use *download for offline use* at the bottom of that version's page. [Releases](https://github.com/jonasprobst/rel-breathanalyser/releases) also keeps the HTML file of each version and lists what changed.
 
 If a new version changes your results, you can reopen the version you used before and compare. Sessions saved with one version can be loaded in another.
 

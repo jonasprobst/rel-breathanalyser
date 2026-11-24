@@ -110,6 +110,10 @@ A former `breathcounter:combined` key (combined results, removed in 1.2.0) may s
 2. A normal `<a download>` (GitHub Pages, local file).
 3. Shows the text in a textarea and copies it to the clipboard (fallback for sandboxed frames).
 
+### Offline download
+
+The footer link *download for offline use* (`#dlSelf`) is an `<a download="breathanalyser-v<VERSION>.html">` pointing at the page's own URL. It is shown only on `http(s)` and when not inside a frame: a downloaded copy (`file:`) is already offline, and sandboxed frames (claude.ai artifact) may block downloads. The browser re-fetches the page from the site when clicked; that is the only request the app can cause, and it is user-initiated and carries no data. It downloads the served file, not the live DOM, so no session state ends up in the copy. On `v/<VERSION>/` pages it downloads that version.
+
 ### Version
 
 `const VERSION` is written into every results row (`tool_version`) and the session file, and shown in the footer. Bump it on any change that can alter results (detection, statistics, columns), and for feature releases. Each released version gets a git tag `v<VERSION>`, a GitHub Release with the HTML attached, and a permanent copy on the site at `v/<VERSION>/` (see `development.md`).
