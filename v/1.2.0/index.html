@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Breathanalyser</title>
+<style>
+  :root{--bg:#fafaf8;--panel:#fff;--ink:#1f2328;--mute:#6b7280;--line:#e5e7eb;--acc:#2563eb;--brk:#0072b2;--unc:#e69f00;--add:#009e73}
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
+  h1{font-size:17px;margin:0 8px 0 0}
+  main{padding:12px 16px;max-width:1500px;margin:0 auto}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:12px}
+  .row{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
+  label{color:var(--mute);font-size:12.5px}
+  input[type=number]{width:70px}
+  input,select,button{font:inherit;font-size:13px}
+  input[type=text]{width:100%;min-width:60px}
+  button{border:1px solid var(--line);background:#fff;border-radius:6px;padding:4px 10px;cursor:pointer}
+  button:hover{border-color:var(--acc)}
+  button.pri{background:var(--acc);color:#fff;border-color:var(--acc)}
+  button.on{background:#111;color:#fff;border-color:#111}
+  #blindMsg{display:none;padding:14px;background:#f3f4f6;border-radius:6px}
+  canvas{display:block;width:100%;border-radius:6px;background:#fff}
+  #ov,#rate{cursor:crosshair}
+  #det{cursor:pointer}
+  .muted{color:var(--mute)}
+  .legend span{margin-right:14px;white-space:nowrap}
+  .ic{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.15;stroke-linecap:round;stroke-linejoin:round;vertical-align:-3px}
+  button.icb{padding:4px 7px;line-height:1}
+  #tbl tr[data-k]{cursor:pointer}
+  #tbl tr.act td{background:#eff6ff}
+  button.danger{color:#b91c1c}
+  button.danger.on{background:#b91c1c;color:#fff;border-color:#b91c1c}
+  .warn{color:#b91c1c;font-size:13px;margin-right:6px}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th,td{padding:4px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+  th{color:var(--mute);font-weight:500;white-space:normal;vertical-align:bottom;line-height:1.2}
+  .tblwrap{overflow-x:auto;max-width:100%}
+  #tbl input[type=text][data-f=name]{width:110px}
+  td.l,th.l{text-align:left}
+  .sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:middle}
+  .big{font-weight:600}
+  #status{font-size:12.5px}
+  #settings summary{cursor:pointer;color:var(--acc)}
+  .tagline{flex:1;text-align:center;color:var(--mute);font-size:13.5px}
+  .helpbtn{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--acc);color:var(--acc);border-radius:6px;padding:4px 12px;text-decoration:none;font-weight:500;margin-left:auto}
+  .helpbtn:hover{background:var(--acc);color:#fff}
+  @media (max-width:760px){.tagline{display:none}}
+  .drop{border:2px dashed var(--line);border-radius:8px;padding:32px;text-align:center;color:var(--mute);margin-top:8px;cursor:pointer}
+  .filebtn{border:1px solid var(--line);border-radius:6px;padding:4px 10px;cursor:pointer;background:#fff;color:var(--ink);font-size:13px}
+  .filebtn:hover{border-color:var(--acc)}
+  footer{padding:4px 16px 20px;text-align:center;color:var(--mute);font-size:12.5px}
+  footer a{color:var(--acc)}
+  #settings h3{font-size:13px;margin:12px 0 4px;color:var(--ink)}
+  .drop.hover{border-color:var(--acc);color:var(--acc)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Breathanalyser</h1>
+  <span class="tagline">Count, check and export breaths per minute from respiratory recordings</span>
+  <a class="helpbtn" href="https://github.com/jonasprobst/rel-breathanalyser#readme" target="_blank" rel="noopener" title="User guide: how to use the app, what the results mean"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5"/><path d="M6.2 6.2a1.9 1.9 0 1 1 2.6 1.8c-.5.2-.8.6-.8 1.1v.4M8 11.6v.1"/></svg>Help</a>
+</header>
+<main>
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div class="row" style="gap:6px 10px"><b>Recording</b> <span id="status" class="muted">Load a .wav recording. Everything stays in your browser.</span></div>
+      <div class="row">
+        <label id="chanWrap" style="display:none" title="The channel the breaths are detected on. Check that it is the breathing belt.">Channel <select id="chan"></select></label>
+        <label class="filebtn"><input type="file" id="file" accept=".wav,audio/wav" style="display:none"><span id="fileLbl">Choose file</span></label>
+      </div>
+    </div>
+    <div id="drop" class="drop">Drop a .wav file here, or click to choose one.</div>
+  </div>
+
+  <div id="app" style="display:none">
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <b>Overview</b>
+        <div class="row" style="gap:6px"><button id="ovOut" class="icb" title="Zoom out" aria-label="Zoom out"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10 10l4.2 4.2M4.5 6.5h4"/></svg></button><button id="ovIn" class="icb" title="Zoom in" aria-label="Zoom in"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10 10l4.2 4.2M4.5 6.5h4M6.5 4.5v4"/></svg></button><button id="ovFit" title="Show whole recording">Fit</button></div>
+      </div>
+      <canvas id="ov" height="110"></canvas>
+      <div class="muted" style="margin-top:6px">Breath rate: dots = 60 / interval between breaths, line = breaths counted in a rolling 60 s, dashes = phase average</div>
+      <canvas id="rate" height="150"></canvas>
+    </div>
+
+    <div class="card">
+      <div style="margin-bottom:6px"><b>Detail</b> <span class="muted">— click to add or remove breaths, drag to create a phase</span></div>
+      <div class="row" style="justify-content:space-between;margin-bottom:6px">
+        <div class="row">
+          <button id="prev" title="Left arrow">◀</button>
+          <button id="next" title="Right arrow">▶</button>
+        </div>
+        <div class="row" style="gap:6px">
+          <button id="detOut" class="icb" title="Zoom out (show more time)" aria-label="Zoom out"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10 10l4.2 4.2M4.5 6.5h4"/></svg></button>
+          <label>Window <select id="span"><option>10</option><option>30</option><option selected>60</option><option>120</option><option>300</option><option id="spanCustom" hidden></option></select> s</label>
+          <button id="detIn" class="icb" title="Zoom in (show less time)" aria-label="Zoom in"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10 10l4.2 4.2M4.5 6.5h4M6.5 4.5v4"/></svg></button>
+        </div>
+      </div>
+      <div class="row" style="margin-bottom:6px">
+        <div class="legend">
+          <span style="color:var(--brk)">▼ breath</span>
+          <span style="color:var(--unc)">▼ unclear breath</span>
+          <span style="color:var(--unc)">▽ unclear, not counted</span>
+          <span style="color:var(--add)">▼ added by you</span>
+          <span style="color:#9ca3af">✕ removed by you</span>
+        </div>
+      </div>
+      <canvas id="det" height="320"></canvas>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between;margin-bottom:6px">
+        <b>Phases and results</b>
+      </div>
+      <div id="blindMsg">Blind review is on: phases and results are hidden. Validate the breaths, then turn blind review off in <a href="#settings" id="toSettings">Settings</a> to see the results.</div>
+      <div id="resBody">
+        <div class="row" style="gap:8px 16px;margin-bottom:8px">
+          <label title="Identifies this recording in exports, e.g. the animal or subject ID">Subject ID <input type="text" id="horseId" style="width:140px"></label>
+          <button id="addView">+ Phase from current window</button>
+        </div>
+        <div class="tblwrap"><table id="tbl"></table></div>
+        <div class="row" style="gap:6px;margin-top:8px">
+          <button id="expRes" class="pri">Export results CSV</button>
+          <button id="expBr">Export breaths CSV</button>
+        </div>
+      </div>
+      <div class="row" style="gap:6px;margin-top:14px;padding-top:10px;border-top:1px solid var(--line)">
+        <span class="muted" style="font-size:12.5px;margin-right:4px">Session</span>
+        <button id="expSes" title="Save phases, breath edits, settings and channel as a .json file">Save</button>
+        <label class="filebtn" title="Load a saved .json session file"><input type="file" id="loadSes" accept=".json" style="display:none">Load</label>
+        <button id="clrSes" class="danger" title="Delete everything saved for this file in this browser">Clear</button>
+        <span id="clrConfirm" style="display:none"><span class="warn">Deletes all phases, breath edits, Subject ID and settings for this file. This can't be undone.</span>
+          <button id="clrYes" class="danger on">Delete everything</button> <button id="clrNo">Cancel</button></span>
+      </div>
+      <div id="expMsg" class="muted" style="margin-top:6px"></div>
+    </div>
+
+  </div>
+  <div class="card">
+    <details id="settings">
+      <summary>Settings</summary>
+      <h3>Display</h3>
+      <label style="color:var(--ink)" title="Show the original samples of the file, unfiltered, in the detail plot. Breaths are always detected on the filtered signal. Key: R"><input type="checkbox" id="rawChk"> Raw signal in the detail plot (unfiltered, original samples; key R)</label>
+      <h3>Review</h3>
+      <label style="color:var(--ink)" title="Hide phases and results while validating breaths, so the review is not influenced by knowing which stretch belongs to which condition"><input type="checkbox" id="blind"> Blind review: hide phases and results while validating breaths</label>
+      <div id="detSet">
+      <h3>Detection</h3>
+      <div class="row">
+        <label>Min breath size <input type="number" id="p_thr" value="35" min="5" max="90" step="1"> % of local typical</label>
+        <label>Min time between breaths <input type="number" id="p_minGap" value="1.2" step="0.1" min="0.3"> s</label>
+        <label>Unclear band ± <input type="number" id="p_unc" value="10" step="1" min="0"> %</label>
+        <label>High-pass <input type="number" id="p_hp" value="0.05" step="0.01" min="0.01"> Hz</label>
+        <label>Low-pass <input type="number" id="p_lp" value="1.0" step="0.1" min="0.2"> Hz</label>
+        <label>Typical-size window <input type="number" id="p_ampWin" value="30" step="5" min="5"> s</label>
+        <label>Skip start <input type="number" id="p_skip" value="0" step="5" min="0"> s</label>
+        <button id="resetP">Defaults</button>
+      </div>
+      <p class="muted" style="margin:8px 0 0">A high counts as a breath when its rise is at least “min breath size” of the typical breath height (10th–90th percentile range) in the surrounding window. Breaths within the unclear band of that threshold are marked for review. Your manual adds and removals are kept when you change settings.</p>
+      </div>
+    </details>
+  </div>
+</main>
+<footer>Breathanalyser <span id="ver"></span> · <a href="https://github.com/jonasprobst/rel-breathanalyser#readme" target="_blank" rel="noopener">help</a><span id="dlWrap" style="display:none"> · <a id="dlSelf" href="#" title="Save this version as one HTML file. Open it in a browser to use the app without internet.">download for offline use</a></span> · <a href="https://github.com/jonasprobst/rel-breathanalyser/releases" target="_blank" rel="noopener">earlier versions</a></footer>
+
+<script id="core">
+// ---------- Pure signal-processing core (no DOM) ----------
+function wavStr(dv,o,n){let s='';for(let i=0;i<n;i++)s+=String.fromCharCode(dv.getUint8(o+i));return s;}
+function parseWav(buf){
+  const dv=new DataView(buf);
+  if(dv.byteLength<12||wavStr(dv,0,4)!=='RIFF'||wavStr(dv,8,4)!=='WAVE')throw new Error('Not a RIFF/WAVE file');
+  let p=12,fmt=null,data=null;
+  while(p+8<=dv.byteLength){
+    const id=wavStr(dv,p,4);let sz=dv.getUint32(p+4,true);const body=p+8;
+    if(id==='fmt '){
+      fmt={tag:dv.getUint16(body,true),ch:dv.getUint16(body+2,true),fs:dv.getUint32(body+4,true),bits:dv.getUint16(body+14,true)};
+      if(fmt.tag===0xFFFE&&sz>=26)fmt.tag=dv.getUint16(body+24,true);
+    }else if(id==='data'){
+      if(sz===0xFFFFFFFF||body+sz>dv.byteLength)sz=dv.byteLength-body;
+      data={off:body,len:sz};break;
+    }
+    p=body+sz+(sz&1);
+  }
+  if(!fmt||!data)throw new Error('WAV is missing fmt or data chunk');
+  if(fmt.tag!==1&&fmt.tag!==3)throw new Error('Unsupported WAV encoding (format '+fmt.tag+')');
+  const frame=fmt.bits/8*fmt.ch;
+  fmt.frames=Math.floor(data.len/frame);
+  return {fmt,data,dv};
+}
+function sampleReader(fmt,dv){
+  if(fmt.tag===3)return fmt.bits===64?o=>dv.getFloat64(o,true):o=>dv.getFloat32(o,true);
+  switch(fmt.bits){
+    case 8:return o=>dv.getUint8(o)-128;
+    case 16:return o=>dv.getInt16(o,true);
+    case 24:return o=>dv.getUint8(o)|(dv.getUint8(o+1)<<8)|(dv.getInt8(o+2)<<16);
+    case 32:return o=>dv.getInt32(o,true);
+  }
+  throw new Error('Unsupported bit depth '+fmt.bits);
+}
+// read one channel and block-average it down to f Hz
+function readChannelDown(w,ch,f){
+  const {fmt,data,dv}=w,bps=fmt.bits/8,frame=bps*fmt.ch,n=fmt.frames,rd=sampleReader(fmt,dv);
+  if(fmt.fs<=f){const y=new Float64Array(n);for(let j=0;j<n;j++)y[j]=rd(data.off+j*frame+ch*bps);return {y,f:fmt.fs};}
+  const m=Math.floor(n*f/fmt.fs),y=new Float64Array(m);
+  for(let i=0;i<m;i++){
+    const a=Math.floor(i*fmt.fs/f),b=Math.min(n,Math.floor((i+1)*fmt.fs/f));
+    let s=0;for(let j=a;j<b;j++)s+=rd(data.off+j*frame+ch*bps);
+    y[i]=s/Math.max(1,b-a);
+  }
+  return {y,f};
+}
+// read one channel at the original sampling rate for the time span [t0,t1] s, for display.
+// Returns {t,lo,hi}: every sample (lo===hi) if there are at most 2*nb of them, otherwise the min/max of nb equal bins.
+function readChannelRange(w,ch,t0,t1,nb){
+  const {fmt,data,dv}=w,bps=fmt.bits/8,frame=bps*fmt.ch,rd=sampleReader(fmt,dv),o=data.off+ch*bps;
+  const a=Math.max(0,Math.floor(t0*fmt.fs)),b=Math.min(fmt.frames,Math.ceil(t1*fmt.fs)+1),m=Math.max(0,b-a);
+  nb=Math.max(1,Math.floor(nb));
+  if(m<=2*nb){const t=new Float64Array(m),v=new Float64Array(m);for(let j=0;j<m;j++){t[j]=(a+j)/fmt.fs;v[j]=rd(o+(a+j)*frame);}return {t,lo:v,hi:v};}
+  const t=new Float64Array(nb),lo=new Float64Array(nb),hi=new Float64Array(nb);
+  for(let k=0;k<nb;k++){
+    const j0=a+Math.floor(k*m/nb),j1=a+Math.floor((k+1)*m/nb);let u=Infinity,v=-Infinity;
+    for(let j=j0;j<j1;j++){const x=rd(o+j*frame);if(x<u)u=x;if(x>v)v=x;}
+    t[k]=(j0+j1-1)/2/fmt.fs;lo[k]=u;hi[k]=v;
+  }
+  return {t,lo,hi};
+}
+function biquad(type,fc,fs){
+  const Q=Math.SQRT1_2,w=2*Math.PI*fc/fs,c=Math.cos(w),s=Math.sin(w),al=s/(2*Q),a0=1+al;
+  let b0,b1,b2;
+  if(type==='lp'){b0=(1-c)/2;b1=1-c;b2=b0;}else{b0=(1+c)/2;b1=-(1+c);b2=b0;}
+  return {k:[b0/a0,b1/a0,b2/a0,-2*c/a0,(1-al)/a0],dc:type==='lp'?1:0};
+}
+function lfilter(x,{k:[b0,b1,b2,a1,a2],dc}){
+  const n=x.length,y=new Float64Array(n),x0=x[0];
+  let x1=0,x2=0,y1=0,y2=0;
+  for(let i=0;i<n;i++){const xi=x[i]-x0;const yi=b0*xi+b1*x1+b2*x2-a1*y1-a2*y2;x2=x1;x1=xi;y2=y1;y1=yi;y[i]=yi+dc*x0;}
+  return y;
+}
+function filtfilt(x,flt,fs){
+  const n=x.length,P=Math.min(n-2,Math.round(20*fs));
+  if(P<1)return Float64Array.from(x);
+  const e=new Float64Array(n+2*P);
+  for(let i=0;i<P;i++){e[i]=2*x[0]-x[P-i];e[n+P+i]=2*x[n-1]-x[n-2-i];}
+  e.set(x,P);
+  let y=lfilter(e,flt);y.reverse();y=lfilter(y,flt);y.reverse();
+  return y.slice(P,P+n);
+}
+function quant(sorted,q){const i=(sorted.length-1)*q,a=Math.floor(i),b=Math.ceil(i);return sorted[a]+(sorted[b]-sorted[a])*(i-a);}
+function median(arr){if(!arr.length)return NaN;const s=Float64Array.from(arr).sort();return quant(s,.5);}
+
+function analyse(y,f,P){
+  const n=y.length,s0=Math.min(n-1,Math.max(0,Math.round(P.skip*f)));
+  const x=Float64Array.from(y);for(let i=0;i<s0;i++)x[i]=y[s0];
+  let z=filtfilt(x,biquad('hp',P.hp,f),f);
+  if(P.lp<f/2)z=filtfilt(z,biquad('lp',P.lp,f),f);
+  for(let i=0;i<s0;i++)z[i]=0;
+  // local typical breath size: rolling 10-90 percentile range
+  const amp=new Float64Array(n),hw=Math.max(1,Math.round(P.ampWin*f/2)),step=Math.max(1,Math.round(f));
+  for(let c=0;c<n;c+=step){
+    const a=Math.max(s0,c-hw),b=Math.min(n,c+hw);let v=0;
+    if(b-a>step){const w=z.slice(a,b).sort();v=quant(w,.9)-quant(w,.1);}
+    for(let i=c;i<Math.min(n,c+step);i++)amp[i]=v;
+  }
+  // candidate highs, min distance (higher wins)
+  const lm=[];for(let i=Math.max(1,s0);i<n-1;i++)if(z[i]>z[i-1]&&z[i]>=z[i+1])lm.push(i);
+  const dist=Math.max(1,Math.round(P.minGap*f)),taken=new Uint8Array(n),kept=[];
+  for(const p of lm.slice().sort((a,b)=>z[b]-z[a])){
+    if(taken[p])continue;kept.push(p);
+    for(let j=Math.max(0,p-dist+1);j<Math.min(n,p+dist);j++)taken[j]=1;
+  }
+  kept.sort((a,b)=>a-b);
+  // prominence (rise from the deeper-side trough, limited to the size window)
+  const auto=[],cand=[],wl=2*hw;
+  for(const p of kept){
+    let lmin=z[p],rmin=z[p];
+    for(let l=p-1;l>=Math.max(s0,p-wl);l--){if(z[l]>z[p])break;if(z[l]<lmin)lmin=z[l];}
+    for(let r=p+1;r<=Math.min(n-1,p+wl);r++){if(z[r]>z[p])break;if(z[r]<rmin)rmin=z[r];}
+    const prom=z[p]-Math.max(lmin,rmin),r=amp[p]>0?prom/amp[p]:0;
+    const rec={i:p,t:p/f,r};
+    if(r>=P.thr)auto.push(rec);else if(r>=P.thr-P.unc)cand.push(rec);
+  }
+  return {f,n,s0,z,amp,auto,cand,dur:n/f};
+}
+// combine auto detections with manual edits
+function mergeEdits(D,E){
+  const out=[];
+  for(const p of D.auto)if(!E.removed.some(t=>Math.abs(t-p.t)<0.3))out.push({t:p.t,src:'auto',r:p.r});
+  for(const t of E.added)out.push({t,src:'manual'});
+  return out.sort((a,b)=>a.t-b.t);
+}
+function phaseStats(D,B,E,P,a,b){
+  const bs=B.filter(x=>x.t>=a&&x.t<b),n=bs.length,dur=Math.max(1e-9,b-a)/60,iv=[];
+  for(let k=1;k<n;k++)iv.push(bs[k].t-bs[k-1].t);
+  const med=iv.length>=3?median(iv):NaN,maxIv=iv.length?Math.max(...iv):NaN;
+  let sdIv=NaN;if(iv.length>=3){const m=iv.reduce((x,y)=>x+y,0)/iv.length;sdIv=Math.sqrt(iv.reduce((x,y)=>x+(y-m)*(y-m),0)/(iv.length-1));}
+  const unc=D.auto.filter(p=>p.t>=a&&p.t<b&&p.r<P.thr+P.unc).length+D.cand.filter(p=>p.t>=a&&p.t<b).length;
+  const edits=E.added.filter(t=>t>=a&&t<b).length+E.removed.filter(t=>t>=a&&t<b).length;
+  return {n,durS:b-a,bpm:n/dur,bpmMed:60/med,maxIv,sdIv,unc,edits};
+}
+</script>
+
+<script>
+// ---------- UI ----------
+const $=id=>document.getElementById(id);
+const DEF={skip:0,hp:0.05,lp:1.0,thr:0.35,minGap:1.2,ampWin:30,unc:0.10};
+const COLORS=['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#84cc16','#ec4899'];
+const FS=20;
+let P={...DEF},W=null,fileName='',fileSize=0,chan=0,Y=null,D=null,B=[],E={added:[],removed:[]},phases=[],view=0,span=60;
+let actP=null,downloads=null,ov0=0,ov1=0,blind=false,horseId='',showRaw=false,rawC={k:'',r:null},ys=null;
+const VERSION='1.2.0';
+try{blind=localStorage.getItem('breathcounter:blind')==='1';}catch(e){}
+const visPhases=()=>blind?[]:phases;
+if(window.claude&&claude.use)claude.use('downloads').then(d=>downloads=d).catch(()=>{});
+
+const fmtT=s=>{if(!isFinite(s))return'–';const m=Math.floor(s/60),r=s-60*m;return m+':'+(r<10?'0':'')+r.toFixed(r%1?1:0);};
+function parseT(v){v=String(v).trim();if(v.includes(':')){const [m,s]=v.split(':');return 60*parseFloat(m)+parseFloat(s||0);}return parseFloat(v);}
+const key=()=>'breathcounter:'+fileName+':'+fileSize;
+function save(){try{localStorage.setItem(key(),JSON.stringify(session()));}catch(e){}}
+function session(){return {file:fileName,size:fileSize,channel:chan+1,subjectId:horseId,params:P,phases,added:E.added,removed:E.removed,version:VERSION};}
+function applySession(s){
+  if(s.params)P={...DEF,...s.params};
+  phases=(s.phases||[]).map(p=>({name:p.name,a:p.a,b:p.b}));
+  const sid=s.subjectId!==undefined?s.subjectId:s.horseId;if(sid!==undefined)horseId=sid;
+  $('horseId').value=horseId;
+  E={added:[...(s.added||[])],removed:[...(s.removed||[])]};
+  syncParamInputs();
+}
+
+// ---- loading ----
+async function loadFile(file){
+  $('status').textContent='Reading '+file.name+' …';
+  try{
+    const buf=await file.arrayBuffer();
+    W=parseWav(buf);fileName=file.name;fileSize=file.size;
+    let st=null;try{st=JSON.parse(localStorage.getItem(key())||'null');}catch(e){}
+    const sel=$('chan');sel.innerHTML='';
+    for(let c=0;c<W.fmt.ch;c++){const o=document.createElement('option');o.value=c;o.textContent=c+1;sel.appendChild(o);}
+    let pref=W.fmt.ch-1;
+    try{const g=parseInt(localStorage.getItem('breathcounter:channel'));if(g>=1&&g<=W.fmt.ch)pref=g-1;}catch(e){}
+    if(st&&st.channel&&st.channel<=W.fmt.ch)pref=st.channel-1;
+    sel.value=pref;sel.disabled=W.fmt.ch<2;$('chanWrap').style.display='';
+    P={...DEF};phases=[];E={added:[],removed:[]};horseId=file.name.replace(/\.[^.]+$/,'');$('horseId').value=horseId;
+    if(st)applySession(st);else syncParamInputs();
+    setChannel(pref);
+    $('drop').style.display='none';$('app').style.display='';$('detSet').style.display='';$('fileLbl').textContent='Load another file';
+    view=0;ov0=0;ov1=D.dur;ys=null;resize();
+  }catch(err){$('status').textContent='Could not read file: '+err.message;console.error(err);}
+}
+function setChannel(c){
+  chan=+c;ys=null;
+  const r=readChannelDown(W,chan,FS);Y=r.y;
+  try{localStorage.setItem('breathcounter:channel',chan+1);}catch(e){}
+  run();
+  $('status').textContent=`${fileName} · ${W.fmt.ch} ch · ${W.fmt.fs} Hz · ${fmtT(W.fmt.frames/W.fmt.fs)} min`;
+}
+function run(){
+  D=analyse(Y,FS,P);B=mergeEdits(D,E);ys=null;
+  if(view<D.s0/D.f&&D.s0>0)view=Math.max(0,D.s0/D.f-2);
+  drawAll();renderTable();save();
+}
+function refresh(){B=mergeEdits(D,E);drawAll();renderTable();save();}
+
+// ---- canvas helpers ----
+const dpr=()=>window.devicePixelRatio||1;
+function setup(c){if(!c.dataset.h)c.dataset.h=c.getAttribute('height');const r=dpr(),w=c.clientWidth,h=+c.dataset.h;if(c.width!==Math.round(w*r)||c.height!==Math.round(h*r)){c.width=Math.round(w*r);c.height=Math.round(h*r);}c.style.height=h+'px';const g=c.getContext('2d');g.setTransform(r,0,0,r,0,0);g.clearRect(0,0,w,h);return {g,w,h};}
+const L=56,R=10;
+function tickStep(s){return s<=25?2:s<=70?5:s<=150?10:s<=400?30:s<=1200?60:s<=3000?300:600;}
+function xAxis(g,w,h,t0,t1,bottom){
+  const st=tickStep(t1-t0);g.fillStyle='#6b7280';g.strokeStyle='#f0f0f0';g.font='11px system-ui';g.textAlign='center';
+  for(let t=Math.ceil(t0/st)*st;t<=t1;t+=st){const x=L+(t-t0)/(t1-t0)*(w-L-R);g.beginPath();g.moveTo(x,4);g.lineTo(x,h-bottom);g.stroke();g.fillText(fmtT(t),x,h-bottom+13);}
+}
+function drawAll(){if(!D)return;drawOverview();drawRate();drawDetail();}
+
+// ---- overview ----
+let drag=null;
+// phase edges snap to round times; the step depends on the time visible in that plot (Alt/Option = exact)
+const snapStep=vis=>vis<=70?1:vis<=400?5:vis<=1200?10:30;
+const snapT=(t,vis,e)=>e&&e.altKey?t:Math.max(0,Math.min(D.dur,Math.round(t/snapStep(vis))*snapStep(vis)));
+function drawOverview(){
+  const {g,w,h}=setup($('ov')),B0=18,T0=ov0,T1=ov1,X=t=>L+(t-T0)/(T1-T0)*(w-L-R);
+  xAxis(g,w,h,T0,T1,B0);
+  g.save();g.beginPath();g.rect(L,0,w-L-R,h);g.clip();
+  visPhases().forEach((p,k)=>{g.fillStyle=COLORS[k%COLORS.length]+'30';g.fillRect(X(p.a),2,X(p.b)-X(p.a),h-B0-2);g.fillStyle=COLORS[k%COLORS.length];g.font='11px system-ui';g.textAlign='left';if(g.measureText(p.name).width+6<X(p.b)-X(p.a))g.fillText(p.name,X(p.a)+3,13);});
+  const pw=Math.floor(w-L-R),j0=Math.max(0,Math.floor(T0*D.f)),j1=Math.min(D.n,Math.ceil(T1*D.f)),col=px=>Math.floor(j0+px/pw*(j1-j0));
+  let lo=Infinity,hi=-Infinity;for(let i=Math.max(D.s0,j0);i<j1;i++){if(D.z[i]<lo)lo=D.z[i];if(D.z[i]>hi)hi=D.z[i];}
+  if(!(hi>lo)){lo=-1;hi=1;}
+  const Yp=v=>6+(hi-v)/(hi-lo)*(h-B0-14);
+  g.strokeStyle='#4b5563';g.lineWidth=1;g.beginPath();
+  const dense=(j1-j0)>pw*2;
+  if(!dense){for(let i=j0;i<j1;i++){const x=X(i/D.f),yv=Yp(D.z[i]);i===j0?g.moveTo(x,yv):g.lineTo(x,yv);}}
+  else for(let px=0;px<pw;px++){const i0=col(px),i1=Math.max(i0+1,col(px+1));let a=Infinity,b=-Infinity;for(let i=i0;i<i1;i++){const v=D.z[i];if(v<a)a=v;if(v>b)b=v;}const x=L+px+.5;if(px===0)g.moveTo(x,Yp(b));else g.lineTo(x,Yp(b));g.lineTo(x,Yp(a));}
+  g.stroke();
+  if(D.s0>0){g.fillStyle='#00000010';g.fillRect(L,2,X(D.s0/D.f)-L,h-B0-2);}
+  g.strokeStyle='#111';g.lineWidth=1.5;g.strokeRect(X(view),1,Math.max(2,X(view+span)-X(view)),h-B0-1);
+  if(drag&&drag.moved){g.fillStyle='#2563eb33';g.fillRect(X(Math.min(drag.a,drag.b)),2,Math.abs(X(drag.b)-X(drag.a)),h-B0-2);}
+  g.restore();
+}
+function evT(e,c,t0,t1){const r=c.getBoundingClientRect(),x=e.clientX-r.left;return t0+(x-L)/(r.width-L-R)*(t1-t0);}
+function bindOverview(c){
+  c.addEventListener('mousedown',e=>{const t=Math.max(0,Math.min(D.dur,evT(e,c,ov0,ov1)));drag={a:t,b:t,a0:t,moved:false,x:e.clientX};});
+  window.addEventListener('mousemove',e=>{if(!drag)return;if(Math.abs(e.clientX-drag.x)>4)drag.moved=true;const vis=ov1-ov0;drag.a=snapT(drag.a0,vis,e);drag.b=snapT(evT(e,c,ov0,ov1),vis,e);drawOverview();});
+  window.addEventListener('mouseup',()=>{if(!drag)return;const d=drag;drag=null;
+    if(d.moved&&Math.abs(d.b-d.a)>=3&&!blind){addPhase(Math.min(d.a,d.b),Math.max(d.a,d.b));}
+    else{view=Math.max(0,Math.min(D.dur-span,d.a0-span/2));ys=null;drawAll();}
+  });
+}
+
+// ---- rate ----
+function drawRate(){
+  const {g,w,h}=setup($('rate')),B0=18,T0=ov0,T1=ov1,X=t=>L+(t-T0)/(T1-T0)*(w-L-R);
+  const pts=[];for(let k=1;k<B.length;k++){const iv=B[k].t-B[k-1].t;pts.push([(B[k].t+B[k-1].t)/2,60/iv]);}
+  const roll=[];for(let t=D.s0/D.f+30;t<=D.dur-30;t+=5){roll.push([t,B.filter(b=>b.t>=t-30&&b.t<t+30).length]);}
+  const vis=pts.filter(p=>p[0]>=T0&&p[0]<=T1).map(p=>p[1]).sort((a,b)=>a-b);
+  let top=10;roll.forEach(p=>{if(p[0]>=T0&&p[0]<=T1)top=Math.max(top,p[1]);});
+  if(vis.length)top=Math.max(top,quant(vis,.98));
+  top=Math.min(120,Math.ceil(top*1.15/10)*10);
+  const Yp=v=>8+(1-Math.min(v,top)/top)*(h-B0-12);
+  xAxis(g,w,h,T0,T1,B0);
+  g.fillStyle='#6b7280';g.textAlign='right';g.font='11px system-ui';
+  for(let v=0;v<=top;v+=top>60?20:10){g.fillText(v,L-6,Yp(v)+4);g.strokeStyle='#f0f0f0';g.beginPath();g.moveTo(L,Yp(v));g.lineTo(w-R,Yp(v));g.stroke();}
+  g.save();g.translate(14,(h-B0)/2+4);g.rotate(-Math.PI/2);g.textAlign='center';g.textBaseline='middle';g.fillText('breaths/min',0,0);g.restore();
+  g.save();g.beginPath();g.rect(L,0,w-L-R,h);g.clip();
+  visPhases().forEach((p,k)=>{g.fillStyle=COLORS[k%COLORS.length]+'18';g.fillRect(X(p.a),2,X(p.b)-X(p.a),h-B0-2);});
+  pts.forEach(([t,v])=>{if(v>top){g.fillStyle='#6b7280';const x=X(t);g.beginPath();g.moveTo(x-3,8);g.lineTo(x+3,8);g.lineTo(x,3);g.fill();}else{g.fillStyle='#9ca3af';g.fillRect(X(t)-1,Yp(v)-1,2.5,2.5);}});
+  g.strokeStyle='#111';g.lineWidth=1.5;g.beginPath();roll.forEach(([t,v],k)=>k?g.lineTo(X(t),Yp(v)):g.moveTo(X(t),Yp(v)));g.stroke();
+  visPhases().forEach((p,k)=>{const s=phaseStats(D,B,E,P,p.a,p.b);if(!isFinite(s.bpm))return;g.strokeStyle=COLORS[k%COLORS.length];g.lineWidth=3;g.setLineDash([6,3]);g.beginPath();g.moveTo(X(p.a),Yp(s.bpm));g.lineTo(X(p.b),Yp(s.bpm));g.stroke();g.setLineDash([]);});
+  g.strokeStyle='#111';g.lineWidth=1;g.strokeRect(X(view),1,Math.max(2,X(view+span)-X(view)),h-B0-1);
+  g.restore();
+}
+
+// ---- detail ----
+let marks=[];
+function drawDetail(){
+  const c=$('det'),{g,w,h}=setup(c),B0=20,t0=view,t1=view+span,X=t=>L+(t-t0)/span*(w-L-R);
+  const i0=Math.max(0,Math.floor(t0*D.f)),i1=Math.min(D.n-1,Math.ceil(t1*D.f));
+  // raw view: original samples of the visible window (min/max per pixel when dense), cached while the window stays the same
+  let raw=null;
+  if(showRaw&&W){const nb=Math.max(1,Math.floor(w-L-R)),k=[fileName,fileSize,chan,t0,t1,nb].join('|');if(rawC.k!==k)rawC={k,r:readChannelRange(W,chan,t0,t1,nb)};raw=rawC.r;}
+  // vertical scale: fitted to everything visible on zoom, jumps, raw/filtered switch and re-analysis (ys=null);
+  // while scrolling it only grows when the trace would be cut off, so it stays steady and never hides anything
+  let vlo=Infinity,vhi=-Infinity;
+  if(raw)for(let k=0;k<raw.t.length;k++){if(raw.lo[k]<vlo)vlo=raw.lo[k];if(raw.hi[k]>vhi)vhi=raw.hi[k];}
+  else for(let i=i0;i<=i1;i++){if(D.z[i]<vlo)vlo=D.z[i];if(D.z[i]>vhi)vhi=D.z[i];}
+  if(!isFinite(vlo)){vlo=0;vhi=0;}
+  if(!(vhi>vlo)){vlo-=1;vhi+=1;}
+  if(ys&&ys.raw!==!!raw)ys=null;
+  if(raw&&ys&&ys.dhi-ys.dlo>4*(vhi-vlo))ys=null;   // raw offset drifted far while scrolling: re-fit instead of squashing
+  if(!ys)ys={raw:!!raw,dlo:vlo,dhi:vhi};else{ys.dlo=Math.min(ys.dlo,vlo);ys.dhi=Math.max(ys.dhi,vhi);}
+  {const pad=(ys.dhi-ys.dlo)*.12;ys.lo=ys.dlo-pad;ys.hi=ys.dhi+pad*1.6;}
+  const TOP=16,lo=ys.lo,hi=ys.hi,Yp=v=>TOP+4+(hi-v)/(hi-lo)*(h-B0-8-TOP);
+  visPhases().forEach((p,k)=>{if(p.b<t0||p.a>t1)return;g.fillStyle=COLORS[k%COLORS.length]+'14';g.fillRect(X(Math.max(p.a,t0)),2,X(Math.min(p.b,t1))-X(Math.max(p.a,t0)),h-B0-2);
+    g.fillStyle=COLORS[k%COLORS.length];g.font='12px system-ui';g.textAlign='left';
+    [p.a,p.b].forEach((t,j)=>{if(t>=t0&&t<=t1){g.fillRect(X(t)-1,2,2,h-B0-2);}});
+    if(p.a>=t0)g.fillText(p.name+' ▸',X(p.a)+4,14);});
+  if(D.s0>0&&t0<D.s0/D.f){g.fillStyle='#00000010';g.fillRect(X(t0),2,X(Math.min(t1,D.s0/D.f))-X(t0),h-B0-2);}
+  xAxis(g,w,h,t0,t1,B0);
+  g.save();g.beginPath();g.rect(L,2,w-L-R,h-B0-2);g.clip();
+  g.strokeStyle='#1f2937';g.lineWidth=1.3;g.beginPath();
+  if(raw){g.lineWidth=1;const same=raw.lo===raw.hi;for(let k=0;k<raw.t.length;k++){const x=X(raw.t[k]),yv=Yp(raw.hi[k]);k?g.lineTo(x,yv):g.moveTo(x,yv);if(!same)g.lineTo(x,Yp(raw.lo[k]));}}
+  else for(let i=i0;i<=i1;i++){const x=X(i/D.f),yv=Yp(D.z[i]);i===i0?g.moveTo(x,yv):g.lineTo(x,yv);}
+  g.stroke();g.restore();
+  if(raw){g.fillStyle='#6b7280';g.font='12px system-ui';g.textAlign='right';g.fillText(`raw signal · ${W.fmt.fs} Hz · unfiltered`,w-R-4,h-B0-8);}
+  // height at which a mark is drawn: the visible trace at that time (raw: its highest point within ±0.15 s)
+  marks=[];const zAt=t=>{
+    if(!raw)return D.z[Math.max(0,Math.min(D.n-1,Math.round(t*D.f)))];
+    let v=-Infinity,bd=Infinity,bv=lo;
+    for(let k=0;k<raw.t.length;k++){const d=Math.abs(raw.t[k]-t);if(d<=0.15&&raw.hi[k]>v)v=raw.hi[k];if(d<bd){bd=d;bv=raw.hi[k];}}
+    return isFinite(v)?v:bv;};
+  const tri=(t,col,fill)=>{const x=X(t),yv=Math.max(TOP+14,Yp(zAt(t))-6);g.beginPath();g.moveTo(x-6,yv-10);g.lineTo(x+6,yv-10);g.lineTo(x,yv);g.closePath();if(fill){g.fillStyle=col;g.fill();}else{g.strokeStyle=col;g.lineWidth=1.6;g.stroke();}};
+  const unclear=p=>p.r<P.thr+P.unc;
+  for(const p of D.cand)if(p.t>=t0&&p.t<=t1&&!B.some(b=>Math.abs(b.t-p.t)<0.3)){tri(p.t,'#e69f00',false);marks.push({t:p.t,kind:'cand'});}
+  for(const t of E.removed)if(t>=t0&&t<=t1){const x=X(t),yv=Math.max(TOP+10,Yp(zAt(t))-12);g.strokeStyle='#9ca3af';g.lineWidth=2;g.beginPath();g.moveTo(x-5,yv-5);g.lineTo(x+5,yv+5);g.moveTo(x+5,yv-5);g.lineTo(x-5,yv+5);g.stroke();marks.push({t,kind:'removed'});}
+  for(const b of B)if(b.t>=t0&&b.t<=t1){tri(b.t,b.src==='manual'?'#009e73':unclear(b)?'#e69f00':'#0072b2',true);marks.push({t:b.t,kind:b.src});}
+  if(ddrag&&ddrag.moved){g.fillStyle=blind?'#9ca3af33':'#2563eb33';g.fillRect(X(Math.min(ddrag.a,ddrag.b)),2,Math.abs(X(ddrag.b)-X(ddrag.a)),h-B0-2);
+    g.fillStyle='#1f2937';g.font='12px system-ui';g.textAlign='left';g.fillText(blind?'Phases are hidden in blind review':`${fmtT(Math.min(ddrag.a,ddrag.b))} – ${fmtT(Math.max(ddrag.a,ddrag.b))}`,X(Math.min(ddrag.a,ddrag.b))+4,h-B0-8);}
+  const st=phaseStats(D,B,E,P,Math.max(t0,D.s0/D.f),Math.min(t1,D.dur));
+  // breath rate of the visible window, small in the top-right strip; a result, so hidden in blind review
+  if(!blind){const num=isFinite(st.bpm)?st.bpm.toFixed(1):'–',lab=' breaths/min';
+    g.textAlign='left';g.font='11.5px system-ui';const wl=g.measureText(lab).width;g.font='600 12.5px system-ui';const wn=g.measureText(num).width;
+    const x0=w-R-4-wl-wn;
+    g.fillStyle='#f3f4f6';g.beginPath();g.roundRect(x0-7,1,wn+wl+14,17,8);g.fill();
+    g.fillStyle='#374151';g.fillText(num,x0,14);g.fillStyle='#9ca3af';g.font='11.5px system-ui';g.fillText(lab,x0+wn,14);}
+}
+const SNAP=0.25;
+function detailClick(e){
+  const c=$('det'),r=c.getBoundingClientRect(),x=e.clientX-r.left,w=r.width;
+  const tx=t=>L+(t-view)/span*(w-L-R),t=view+(x-L)/(w-L-R)*span;
+  if(x<L)return;
+  const near=k=>marks.filter(m=>k.includes(m.kind)).map(m=>({m,d:Math.abs(tx(m.t)-x)})).filter(o=>o.d<9).sort((a,b)=>a.d-b.d)[0];
+  let o;
+  if((o=near(['auto','manual']))){
+    if(o.m.kind==='auto')E.removed.push(o.m.t);else E.added=E.added.filter(v=>Math.abs(v-o.m.t)>1e-6);
+  }else if((o=near(['removed']))){E.removed=E.removed.filter(v=>Math.abs(v-o.m.t)>1e-6);}
+  else if((o=near(['cand']))){E.added.push(o.m.t);}
+  else{
+    // snap to the nearest local high within ±SNAP s; if there is none (or Alt is held), use the click position
+    let tb=Math.max(0,Math.min(D.dur,t));
+    if(!e.altKey){const ic=Math.round(tb*D.f),win=Math.round(SNAP*D.f);let best=-1;
+      for(let i=Math.max(1,ic-win);i<=Math.min(D.n-2,ic+win);i++)if(D.z[i]>=D.z[i-1]&&D.z[i]>D.z[i+1]&&(best<0||Math.abs(i-ic)<Math.abs(best-ic)))best=i;
+      if(best>=0)tb=best/D.f;}
+    tb=+tb.toFixed(2);if(!B.some(b=>Math.abs(b.t-tb)<0.3))E.added.push(tb);
+  }
+  refresh();
+}
+
+// ---- navigation ----
+function setView(v,refit){if(refit)ys=null;view=Math.max(0,Math.min(Math.max(0,D.dur-span),v));
+  const w=ov1-ov0;if(w<D.dur&&(view<ov0||view+span>ov1)){if(span>w){ov0=Math.max(0,view-span*.25);ov1=Math.min(D.dur,ov0+span*1.5);}else{let a=view+span/2-w/2;a=Math.max(0,Math.min(D.dur-w,a));ov0=a;ov1=a+w;}}
+  drawAll();}
+// ---- phases + table ----
+function addPhase(a,b){let n=phases.length+1;while(phases.some(p=>p.name==='Phase '+n))n++;
+  phases.push({name:'Phase '+n,a:+a.toFixed(1),b:+b.toFixed(1)});phases.sort((p,q)=>p.a-q.a);refresh();}
+function resultRows(){
+  return [{name:'Whole recording',whole:true,a:D.s0/D.f,b:D.dur}].concat(phases.map((p,k)=>({name:p.name,a:p.a,b:p.b,k})));
+}
+const f1=v=>isFinite(v)?v.toFixed(1):'–';
+function renderTable(){
+  $('blindMsg').style.display=blind?'block':'none';$('resBody').style.display=blind?'none':'';
+  if(blind){$('tbl').innerHTML='';return;}
+  const rows=[];
+  rows.push(`<tr><th class="l"></th><th class="l">Phase</th><th title="breaths ÷ minutes">Breaths /min</th><th title="60 ÷ median interval between breaths; less sensitive to a missed or extra breath">Median /min</th><th>Breaths</th><th title="longest interval between two breaths, e.g. breath-holding">Longest gap (s)</th><th title="standard deviation of the intervals between breaths">Interval SD (s)</th><th>Start</th><th>End</th><th>Duration</th><th title="breaths near the size threshold, worth checking by eye">Unclear</th><th title="breaths you added or removed">Edits</th><th></th></tr>`);
+  const stat=r=>{const s=phaseStats(D,B,E,P,r.a,r.b);return `<td class="big">${f1(s.bpm)}</td><td>${f1(s.bpmMed)}</td><td>${s.n}</td><td>${f1(s.maxIv)}</td><td>${f1(s.sdIv)}</td>`;};
+  const tail=r=>{const s=phaseStats(D,B,E,P,r.a,r.b);return `<td>${fmtT(s.durS)}</td><td>${s.unc}</td><td>${s.edits}</td>`;};
+  for(const r of resultRows()){
+    if(r.whole)rows.push(`<tr><td></td><td class="l"><i>Whole recording</i></td>${stat(r)}<td>${fmtT(r.a)}</td><td>${fmtT(r.b)}</td>${tail(r)}<td></td></tr>`);
+    else{const k=r.k,p=phases[k];
+      rows.push(`<tr data-k="${k}"${p===actP?' class="act"':''}><td><span class="sw" style="background:${COLORS[k%COLORS.length]}"></span></td><td class="l"><input type="text" data-f="name" value="${p.name.replace(/"/g,'&quot;')}"></td>${stat(r)}<td><input type="text" data-f="a" value="${fmtT(p.a)}" style="width:64px"></td><td><input type="text" data-f="b" value="${fmtT(p.b)}" style="width:64px"></td>${tail(r)}<td style="white-space:nowrap"><button data-act="del" class="icb" title="Delete phase" aria-label="Delete phase"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4h11M6 4V2.5h4V4M4 4l.7 9.5h6.6L12 4M6.8 6.5v4.5M9.2 6.5v4.5"/></svg></button></td></tr>`);}
+  }
+  if(!phases.length)rows.push(`<tr><td></td><td class="l muted" colspan="12">No phases yet. Drag across the overview to mark one, or use “+ Phase from current window”. Rename phases and fine-tune start and end times here.</td></tr>`);
+  $('tbl').innerHTML=rows.join('');
+}
+$('tbl').addEventListener('change',e=>{const tr=e.target.closest('tr[data-k]');if(!tr)return;const p=phases[+tr.dataset.k],f=e.target.dataset.f;
+  if(f==='name')p.name=e.target.value||p.name;else{const v=parseT(e.target.value);if(isFinite(v))p[f]=Math.max(0,Math.min(D.dur,v));if(p.a>p.b)[p.a,p.b]=[p.b,p.a];}
+  phases.sort((x,y)=>x.a-y.a);refresh();});
+// clicking (or tabbing into) a phase row shows that phase in the detail plot; the bin icon deletes it
+function showPhase(p){if(actP!==p){actP=p;document.querySelectorAll('#tbl tr[data-k]').forEach(tr=>tr.classList.toggle('act',phases[+tr.dataset.k]===p));setView(p.a-2,true);}}
+$('tbl').addEventListener('click',e=>{const tr=e.target.closest('tr[data-k]');if(!tr)return;const k=+tr.dataset.k,p=phases[k],b=e.target.closest('button');
+  if(b&&b.dataset.act==='del'){phases.splice(k,1);if(actP===p)actP=null;refresh();return;}
+  showPhase(p);});
+$('tbl').addEventListener('focusin',e=>{const tr=e.target.closest('tr[data-k]');if(tr&&!e.target.closest('button'))showPhase(phases[+tr.dataset.k]);});
+
+// ---- export ----
+// CSV exports are written so that R's read.csv() reads them correctly with default options on any system,
+// including Windows R before 4.2 (native encoding Windows-1252, not UTF-8):
+// plain ASCII text (accents transliterated: ä→ae, é→e, …), missing values written as NA, no byte-order mark, CRLF line ends.
+// Based on the R manual 'R Data Import/Export' (sections 1.1.1 Encodings, 1.2 Export to text files, 2.1 Variations on read.table).
+const TRANSLIT={'ä':'ae','ö':'oe','ü':'ue','Ä':'Ae','Ö':'Oe','Ü':'Ue','ß':'ss','æ':'ae','Æ':'Ae','ø':'o','Ø':'O','œ':'oe','Œ':'Oe','µ':'u','–':'-','—':'-','‘':"'",'’':"'",'“':'"','”':'"','…':'...'};
+const ascii=v=>String(v).replace(/[^\x00-\x7f]/g,c=>TRANSLIT[c]??c.normalize('NFD').replace(/[\u0300-\u036f]/g,'')).replace(/[^\x20-\x7e]/g,'_');
+const q=v=>'"'+ascii(v).replace(/"/g,'""')+'"';
+const RES_HEAD='subject_id,file,channel,phase,start_s,end_s,duration_s,breaths,bpm_count,bpm_median_interval,longest_interval_s,interval_sd_s,unclear,manual_edits,set_min_breath_pct,set_min_gap_s,set_unclear_band_pct,set_highpass_hz,set_lowpass_hz,set_size_window_s,set_skip_s,tool_version';
+const setCols=()=>[(P.thr*100).toFixed(0),P.minGap,(P.unc*100).toFixed(0),P.hp,P.lp,P.ampWin,P.skip,VERSION];
+const n2=v=>isFinite(v)?v.toFixed(2):'NA';
+function resultLines(){
+  return resultRows().map(r=>{const s=phaseStats(D,B,E,P,r.a,r.b);
+    return [q(horseId),q(fileName),chan+1,q(r.name),r.a.toFixed(1),r.b.toFixed(1),s.durS.toFixed(1),s.n,n2(s.bpm),n2(s.bpmMed),n2(s.maxIv),n2(s.sdIv),s.unc,s.edits,...setCols()].join(',');});
+}
+const EOL='\r\n';   // CRLF as in RFC 4180 and native on Windows; read.csv accepts it on every platform
+function csvResults(){return RES_HEAD+EOL+resultLines().join(EOL)+EOL;}
+function csvBreaths(){
+  const lines=['subject_id,time_s,source,unclear,phase'];
+  for(const b of B){const ph=phases.find(p=>b.t>=p.a&&b.t<p.b);lines.push([q(horseId),b.t.toFixed(2),b.src,b.src==='auto'&&b.r<P.thr+P.unc?1:0,ph?q(ph.name):'NA'].join(','));}
+  return lines.join(EOL)+EOL;
+}
+async function offer(name,text,mime){
+  const msg=$('expMsg');msg.textContent='';
+  if(downloads){try{await downloads.save({filename:name,data:text});msg.textContent='Saved '+name;return;}catch(e){}}
+  try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:mime}));a.download=name;document.body.appendChild(a);a.click();a.remove();msg.textContent='Downloaded '+name;return;}catch(e){}
+  // download not possible (e.g. sandboxed frame): copy to the clipboard instead
+  try{await navigator.clipboard.writeText(text);msg.textContent=`Download not possible here: the content of ${name} was copied to your clipboard.`;}
+  catch(e){msg.textContent=`Could not save ${name} in this browser window. Open the app directly (not embedded) and try again.`;}
+}
+const base=()=>fileName.replace(/\.[^.]+$/,'');
+$('expRes').onclick=()=>offer(base()+'_results.csv',csvResults(),'text/csv');
+$('expBr').onclick=()=>offer(base()+'_breaths.csv',csvBreaths(),'text/csv');
+function setBlind(v){blind=v;$('blind').checked=v;try{localStorage.setItem('breathcounter:blind',v?'1':'0');}catch(e){}if(D){drawAll();renderTable();}}
+$('blind').onchange=e=>setBlind(e.target.checked);
+$('toSettings').onclick=e=>{e.preventDefault();const d=$('settings');d.open=true;d.scrollIntoView({behavior:'smooth',block:'start'});};
+// clear everything saved for this file, after an inline confirmation
+const clrShow=v=>{$('clrConfirm').style.display=v?'':'none';$('clrSes').style.display=v?'none':'';};
+$('clrSes').onclick=()=>clrShow(true);$('clrNo').onclick=()=>clrShow(false);
+$('clrYes').onclick=()=>{try{localStorage.removeItem(key());}catch(e){}
+  P={...DEF};phases=[];E={added:[],removed:[]};horseId=base();$('horseId').value=horseId;syncParamInputs();clrShow(false);run();
+  $('expMsg').textContent='Session cleared: this file is back to the automatic detection with default settings.';};
+$('horseId').addEventListener('change',e=>{horseId=e.target.value.trim()||base();e.target.value=horseId;save();});
+
+$('expSes').onclick=()=>offer(base()+'_session.json',JSON.stringify(session(),null,1),'application/json');
+$('loadSes').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const s=JSON.parse(await f.text());applySession(s);if(s.channel&&s.channel-1!==chan&&s.channel<=W.fmt.ch){$('chan').value=s.channel-1;setChannel(s.channel-1);}else run();$('expMsg').textContent='Session loaded.';}catch(err){$('expMsg').textContent='Could not read session: '+err.message;}e.target.value='';};
+
+// ---- params ----
+const PF=['thr','minGap','unc','hp','lp','ampWin','skip'],pct=new Set(['thr','unc']);
+function syncParamInputs(){PF.forEach(k=>$('p_'+k).value=pct.has(k)?Math.round(P[k]*100):P[k]);}
+let pt=null;
+PF.forEach(k=>$('p_'+k).addEventListener('input',()=>{const v=parseFloat($('p_'+k).value);if(!isFinite(v))return;P[k]=pct.has(k)?v/100:v;clearTimeout(pt);pt=setTimeout(()=>D&&run(),250);}));
+$('resetP').onclick=()=>{P={...DEF};syncParamInputs();run();};
+
+// ---- wiring ----
+$('file').onchange=e=>e.target.files[0]&&loadFile(e.target.files[0]);
+$('chan').onchange=e=>setChannel(e.target.value);
+const dz=$('drop');dz.onclick=()=>$('file').click();
+['dragenter','dragover'].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('hover');}));
+['dragleave','drop'].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove('hover');}));
+document.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)loadFile(f);});
+$('prev').onclick=()=>setView(view-span*.8);
+$('next').onclick=()=>setView(view+span*.8);
+$('span').onchange=e=>setSpan(+e.target.value);
+function setRaw(v){showRaw=v;ys=null;$('rawChk').checked=v;if(D)drawDetail();}
+$('rawChk').onchange=e=>setRaw(e.target.checked);
+$('addView').onclick=()=>addPhase(view,Math.min(D.dur,view+span));
+// detail: click edits breaths, drag creates a phase
+let ddrag=null;
+const detT=e=>{const c=$('det'),r=c.getBoundingClientRect();return Math.max(0,Math.min(D.dur,view+(e.clientX-r.left-L)/(r.width-L-R)*span));};
+$('det').addEventListener('mousedown',e=>{if(!D||e.button!==0)return;ddrag={a:detT(e),b:detT(e),a0:detT(e),x:e.clientX,moved:false};});
+window.addEventListener('mousemove',e=>{if(!ddrag)return;if(Math.abs(e.clientX-ddrag.x)>5)ddrag.moved=true;ddrag.a=snapT(ddrag.a0,span,e);ddrag.b=snapT(detT(e),span,e);if(ddrag.moved)drawDetail();});
+window.addEventListener('mouseup',e=>{if(!ddrag)return;const d=ddrag;ddrag=null;
+  if(!d.moved){if(e.target===$('det'))detailClick(e);return;}
+  if(!blind&&Math.abs(d.b-d.a)>=1)addPhase(Math.min(d.a,d.b),Math.max(d.a,d.b));else drawDetail();});
+$('det').addEventListener('wheel',e=>{if(!D)return;e.preventDefault();
+  if(e.ctrlKey||e.metaKey){const c=$('det'),r=c.getBoundingClientRect(),t=view+(e.clientX-r.left-L)/(r.width-L-R)*span;setSpan(span*Math.exp(e.deltaY*0.003),t);}
+  else setView(view+(e.deltaX||e.deltaY)/400*span);},{passive:false});
+bindOverview($('ov'));
+$('rate').addEventListener('click',e=>{const t=evT(e,$('rate'),ov0,ov1);setView(t-span/2,true);});
+function zoomOv(fac,c){const T=D.dur,minW=Math.min(T,Math.max(20,span*1.5));let w=Math.max(minW,Math.min(T,(ov1-ov0)*fac));if(c===undefined)c=view+span/2;
+  const r=(c-ov0)/(ov1-ov0||1);let a=c-r*w;a=Math.max(0,Math.min(T-w,a));ov0=a;ov1=a+w;drawAll();}
+function panOv(dt){const w=ov1-ov0;let a=Math.max(0,Math.min(D.dur-w,ov0+dt));ov0=a;ov1=a+w;drawAll();}
+['ov','rate'].forEach(id=>$(id).addEventListener('wheel',e=>{if(!D)return;e.preventDefault();const c=$(id);
+  if(e.shiftKey||Math.abs(e.deltaX)>Math.abs(e.deltaY))panOv((e.deltaX||e.deltaY)/400*(ov1-ov0));
+  else zoomOv(Math.exp(e.deltaY*0.002),evT(e,c,ov0,ov1));},{passive:false}));
+$('ovIn').onclick=()=>zoomOv(0.5);$('ovOut').onclick=()=>zoomOv(2);$('ovFit').onclick=()=>{ov0=0;ov1=D.dur;drawAll();};
+function setSpan(s,c){if(c===undefined)c=view+span/2;const r=(c-view)/span;span=Math.max(5,Math.min(D.dur,s));
+  // fixed choices; any other length (wheel zoom, + / −) is shown via a hidden extra option, not added to the list
+  const sel=$('span'),v=Math.round(span),cu=$('spanCustom');
+  if([...sel.options].some(o=>o!==cu&&+o.value===v))sel.value=v;else{cu.value=cu.textContent=v;sel.value=v;}
+setView(c-r*span,true);}
+$('detIn').onclick=()=>setSpan(span/2);$('detOut').onclick=()=>setSpan(span*2);
+document.addEventListener('keydown',e=>{if(!D||/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))return;
+  if(e.key==='ArrowRight'){setView(view+span*.8);e.preventDefault();}else if(e.key==='ArrowLeft'){setView(view-span*.8);e.preventDefault();}
+  else if((e.key==='r'||e.key==='R')&&!e.ctrlKey&&!e.metaKey&&!e.altKey)setRaw(!showRaw);});
+function resize(){drawAll();}
+window.addEventListener('resize',resize);
+$('blind').checked=blind;$('ver').textContent='v'+VERSION;$('detSet').style.display='none';
+// offline download: only on the website (a downloaded copy is already offline; inside a frame downloads may be blocked).
+// Re-downloads this same page from the site, only when clicked; no recording data is involved.
+{let top=true;try{top=window.top===window;}catch(e){top=false;}
+  if(/^https?:$/.test(location.protocol)&&top){const a=$('dlSelf');a.href=location.href.split('#')[0];a.download=`breathanalyser-v${VERSION}.html`;$('dlWrap').style.display='';}}
+try{const ro=new ResizeObserver(()=>{if(D)drawAll();});ro.observe($('app'));}catch(e){}
+</script>
+</body>
+</html>
