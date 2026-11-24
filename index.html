@@ -27,6 +27,11 @@
   #det{cursor:pointer}
   .muted{color:var(--mute)}
   .legend span{margin-right:14px;white-space:nowrap}
+  #winRate{border:1px solid var(--line);border-radius:6px;padding:3px 10px;font-size:13px;white-space:nowrap}
+  #winRate b{font-size:17px;font-variant-numeric:tabular-nums}
+  button.danger{color:#b91c1c}
+  button.danger.on{background:#b91c1c;color:#fff;border-color:#b91c1c}
+  .warn{color:#b91c1c;font-size:13px;margin-right:6px}
   table{border-collapse:collapse;width:100%;font-size:13px}
   th,td{padding:4px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
   th{color:var(--mute);font-weight:500;white-space:normal;vertical-align:bottom;line-height:1.2}
@@ -67,10 +72,8 @@
   <div id="app" style="display:none">
     <div class="card">
       <div class="row" style="justify-content:space-between">
-        <div><b>Overview</b> <span class="muted">— drag to create a phase, click to jump there, mouse wheel to zoom, Shift + wheel to pan</span></div>
-        <div class="row"><span class="legend muted"><span>shaded bands = phases</span></span>
-          <button id="ovOut" title="Zoom out">−</button><button id="ovIn" title="Zoom in">+</button><button id="ovFit" title="Show whole recording">Fit</button>
-          <span id="ovInfo" class="muted"></span></div>
+        <b>Overview</b>
+        <div class="row" style="gap:6px"><button id="ovOut" title="Zoom out">−</button><button id="ovIn" title="Zoom in">+</button><button id="ovFit" title="Show whole recording">Fit</button></div>
       </div>
       <canvas id="ov" height="110"></canvas>
       <div class="muted" style="margin-top:6px">Breath rate: dots = 60 / interval between breaths, line = breaths counted in a rolling 60 s, dashes = phase average</div>
@@ -78,7 +81,7 @@
     </div>
 
     <div class="card">
-      <div style="margin-bottom:6px"><b>Detail</b> <span class="muted">— click to add or remove breaths, drag to create a phase, mouse wheel to scroll, Ctrl/⌘ + wheel to zoom</span></div>
+      <div style="margin-bottom:6px"><b>Detail</b> <span class="muted">— click to add or remove breaths, drag to create a phase</span></div>
       <div class="row" style="justify-content:space-between;margin-bottom:6px">
         <div class="row">
           <button id="prev" title="Left arrow">◀</button>
@@ -88,9 +91,13 @@
           <button id="detIn" title="Zoom in (show less time)">+</button>
           <button id="prevU" title="P">◀ unclear</button>
           <button id="nextU" class="pri" title="N">Next unclear ▶</button>
-          <button id="rawBtn" title="Switch between the filtered signal (used for detection) and the raw signal: the original samples of the file, unfiltered. Key: R">Signal: filtered</button>
-          <span id="viewInfo" class="muted"></span>
         </div>
+        <div class="row">
+          <div id="winRate" title="Breaths counted in the visible window ÷ its length in minutes"><b id="winBpm">–</b> breaths/min <span class="muted">in this window</span></div>
+          <button id="rawBtn" title="Switch between the filtered signal (used for detection) and the raw signal: the original samples of the file, unfiltered. Key: R">Signal: filtered</button>
+        </div>
+      </div>
+      <div class="row" style="margin-bottom:6px">
         <div class="legend">
           <span style="color:var(--brk)">▼ breath</span>
           <span style="color:var(--unc)">▼ unclear breath</span>
@@ -100,7 +107,6 @@
         </div>
       </div>
       <canvas id="det" height="320"></canvas>
-      <div class="muted" style="margin-top:6px">Click a mark to remove it (click again to restore). Click a ▽ to count it. Click anywhere else to add a breath; it snaps to a high within ±0.25 s if there is one (hold Alt/Option to place it exactly). Drag across the plot to create a phase. The height scale stays steady while you scroll (it only grows if the signal would be cut off) and re-fits when you zoom or jump. “Signal” (or the R key) switches to the raw, unfiltered recording to inspect the original data; breaths are always detected on the filtered signal.</div>
     </div>
 
     <div class="card">
@@ -122,6 +128,11 @@
           <button id="expRes" class="pri">Export results CSV</button>
           <button id="expBr">Export breaths CSV</button>
         </div>
+      </div>
+      <div class="row" style="gap:6px;margin-top:14px;padding-top:10px;border-top:1px solid var(--line)">
+        <button id="clrSes" class="danger" title="Delete everything saved for this file in this browser">Clear session</button>
+        <span id="clrConfirm" style="display:none"><span class="warn">Deletes all phases, breath edits, Subject ID and settings for this file. This can't be undone.</span>
+          <button id="clrYes" class="danger on">Delete everything</button> <button id="clrNo">Cancel</button></span>
       </div>
       <textarea id="copyOut" readonly></textarea>
       <div id="expMsg" class="muted" style="margin-top:6px"></div>
@@ -380,7 +391,6 @@ function drawOverview(){
   g.strokeStyle='#111';g.lineWidth=1.5;g.strokeRect(X(view),1,Math.max(2,X(view+span)-X(view)),h-B0-1);
   if(drag&&drag.moved){g.fillStyle='#2563eb33';g.fillRect(X(Math.min(drag.a,drag.b)),2,Math.abs(X(drag.b)-X(drag.a)),h-B0-2);}
   g.restore();
-  $('ovInfo').textContent=(T1-T0<D.dur-0.5)?`showing ${fmtT(T0)} – ${fmtT(T1)}`:'';
 }
 function evT(e,c,t0,t1){const r=c.getBoundingClientRect(),x=e.clientX-r.left;return t0+(x-L)/(r.width-L-R)*(t1-t0);}
 function bindOverview(c){
@@ -461,7 +471,7 @@ function drawDetail(){
   if(ddrag&&ddrag.moved){g.fillStyle=blind?'#9ca3af33':'#2563eb33';g.fillRect(X(Math.min(ddrag.a,ddrag.b)),2,Math.abs(X(ddrag.b)-X(ddrag.a)),h-B0-2);
     g.fillStyle='#1f2937';g.font='12px system-ui';g.textAlign='left';g.fillText(blind?'Phases are hidden in blind review':`${fmtT(Math.min(ddrag.a,ddrag.b))} – ${fmtT(Math.max(ddrag.a,ddrag.b))}`,X(Math.min(ddrag.a,ddrag.b))+4,h-B0-8);}
   const st=phaseStats(D,B,E,P,Math.max(t0,D.s0/D.f),Math.min(t1,D.dur));
-  $('viewInfo').textContent=`${fmtT(t0)} – ${fmtT(t1)} · ${st.n} breaths in window (${isFinite(st.bpm)?st.bpm.toFixed(1):'–'}/min)`;
+  $('winBpm').textContent=isFinite(st.bpm)?st.bpm.toFixed(1):'–';$('winRate').style.visibility=blind?'hidden':'';   // a result: hidden in blind review
 }
 const SNAP=0.25;
 function detailClick(e){
@@ -559,6 +569,12 @@ $('expBr').onclick=()=>offer(base()+'_breaths.csv',csvBreaths(),'text/csv');
 function setBlind(v){blind=v;$('blind').checked=v;try{localStorage.setItem('breathcounter:blind',v?'1':'0');}catch(e){}if(D){drawAll();renderTable();}}
 $('blind').onchange=e=>setBlind(e.target.checked);
 $('toSettings').onclick=e=>{e.preventDefault();const d=$('settings');d.open=true;d.scrollIntoView({behavior:'smooth',block:'start'});};
+// clear everything saved for this file, after an inline confirmation
+const clrShow=v=>{$('clrConfirm').style.display=v?'':'none';$('clrSes').style.display=v?'none':'';};
+$('clrSes').onclick=()=>clrShow(true);$('clrNo').onclick=()=>clrShow(false);
+$('clrYes').onclick=()=>{try{localStorage.removeItem(key());}catch(e){}
+  P={...DEF};phases=[];E={added:[],removed:[]};horseId=base();$('horseId').value=horseId;syncParamInputs();clrShow(false);run();
+  $('copyOut').style.display='none';$('expMsg').textContent='Session cleared: this file is back to the automatic detection with default settings.';};
 $('horseId').addEventListener('change',e=>{horseId=e.target.value.trim()||base();e.target.value=horseId;save();});
 
 $('expSes').onclick=()=>offer(base()+'_session.json',JSON.stringify(session(),null,1),'application/json');

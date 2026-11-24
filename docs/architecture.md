@@ -81,7 +81,7 @@ Three `<canvas>` elements drawn with the 2D API. `setup(c)` sizes each canvas fo
 
 Shared x-axis margins: `L = 56`, `R = 10` px. Every mouse→time conversion uses the same margins.
 
-Page layout, top to bottom: header (title, Help link) → *Recording* card (status line with file info, channel selector, file button, drop zone before a file is loaded) → `#app` (Overview, Detail, Phases and results; hidden until a file is loaded) → *Settings* card (`<details id="settings">`: blind review always; the detection inputs `#detSet` only once a file is loaded, because loading resets the parameters) → footer with `VERSION`.
+Page layout, top to bottom: header (title, Help link) → *Recording* card (status line with file info, channel selector, file button, drop zone before a file is loaded) → `#app` (Overview, Detail with the window-rate chip `#winRate` (hidden in blind review), Phases and results with *Clear session* below the exports; hidden until a file is loaded) → *Settings* card (`<details id="settings">`: blind review always; the detection inputs `#detSet` only once a file is loaded, because loading resets the parameters) → footer with `VERSION`.
 
 Detail plot vertical scale: kept in `ys = {raw, dlo, dhi, lo, hi}` (data range, and padded plot range) so it stays steady while scrolling. `ys = null` forces a re-fit to the min/max of the visible window. Otherwise each draw only *grows* `dlo/dhi` to include the visible min/max, so nothing is ever cut off (an earlier version fitted to 0.5–99.5 % quantiles and cut off spikes). It is reset on zoom (`setSpan`), jumps (`setView(v, true)`: next/previous unclear, rate-graph click, phase *View*; overview click), raw/filtered switch, `run()`, channel change and file load. Plain `setView(v)` (wheel, arrow keys, ◀ ▶) keeps it. In raw view it also re-fits when the scale range has grown to more than 4× the visible range (offset drift while scrolling). Marks are clamped to stay inside the plot.
 
@@ -92,6 +92,8 @@ Raw view (`showRaw`): `drawDetail()` draws `readChannelRange(W, chan, …)` for 
 Mouse interaction on the detail plot: `mousedown` → `mousemove` → `mouseup`. A movement of more than 5 px is a drag (creates a phase if ≥ 1 s and blind review is off). Otherwise it's a click and goes to `detailClick`.
 
 ### Persistence
+
+*Clear session* (inline confirmation, no `confirm()` pop-up because sandboxed frames block modals) removes `localStorage[key()]` and resets `P`, `phases`, `E` and `horseId` to a fresh load, then `run()`. Channel and blind review preferences are kept.
 
 | What | Where |
 |---|---|
