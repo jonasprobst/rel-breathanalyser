@@ -43,7 +43,7 @@ It was 30 s (the belt settles in the first ~20 s of the reference recording). Ch
 
 ## Settings written into every results row
 
-So results from different recordings can be compared and reviewers can see how they were produced. The combined export warns if settings differ between recordings.
+So results from different recordings can be compared and reviewers can see how they were produced, and per-recording CSVs can be stacked without losing that information.
 
 ## Subject ID instead of Horse ID
 
@@ -56,6 +56,30 @@ First: snap to the highest point within ±0.75 s (felt like an offset to the rig
 ## Raw signal view (2026-11-19)
 
 Researchers wanted to inspect the original data behind a doubtful breath. The detail plot has a Filtered/Raw **switch** (not an overlay: raw has an offset and drift, so one shared scale would squash the breaths, and two scales in one plot mislead). "Raw" means the **original samples at the file's sampling rate**, not the 20 Hz average, so nothing is hidden. Only the detail plot switches; the overview stays filtered so navigation looks the same. It is a view only and not saved with the session: results never depend on it. `VERSION` went to 1.1.0 as a feature release; results are identical to 1.0.0.
+
+## v1.2.0: UI clean-up, R-safe exports, releases (2026-11-24)
+
+Removed on purpose (don't reintroduce without asking):
+- **Combined results** (multi-recording store in the browser). Never requested; per-recording results CSVs can be stacked.
+- **Jump to next/previous unclear** (buttons, N/P keys). Orange marks and the *Unclear* column are enough.
+- **On-screen help texts** and the export text box. The README is the help.
+- **Y axis on the detail plot** (compared none / gridlines / numbers). Values are device units that vary with belt, animal and gain; the task is judging peaks, not values.
+
+Changed:
+- **Mark colours** blue / orange / green (Okabe–Ito, colour-blind safe). Red vs orange was hard to tell apart.
+- **Channel stays visible** next to the file name, not in Settings: a wrong channel silently makes every result wrong.
+- **Settings** hold the rarely used switches: raw signal, blind review, detection.
+- **Detail height scale** stays steady while scrolling and re-fits on zoom/jumps. It only grows, never cuts off signal (a first version cut off a spike).
+- **Window rate** small in the plot's top-right corner, in its own strip so it never covers marks. Hidden in blind review.
+- **Phase rows navigate** (click = show in detail plot); bin icon deletes. Icons are inline SVG, no libraries.
+- **Phase edges snap** to round times (1/5/10/30 s by zoom level), Alt/Option exact.
+- **Window lengths** fixed to 10/30/60/120/300 s; other zoom levels show their number without growing the list.
+- **Session controls** (Save / Load / Clear) together at the bottom of the results card. Clear asks inline, not via a pop-up (blocked in sandboxed frames).
+
+Exports and releases:
+- **CSV safe for R on Windows**: ASCII text (accents transliterated), `NA` for missing values, no BOM, CRLF. `read.csv()` needs no options, also on Windows R < 4.2 (Windows-1252). Based on *R Data Import/Export* §1.1.1, §1.2, §2.1. Trade-off: accents are lost in CSVs only.
+- **Versioned releases**: tag `v<VERSION>`, GitHub Release with the HTML attached, permanent site copy under `v/<VERSION>/`, so a study can go back to the version it was analysed with.
+- **Offline download link** in the footer (website only). It re-fetches the page itself on click: the one accepted network request (no data sent).
 
 ## Name
 

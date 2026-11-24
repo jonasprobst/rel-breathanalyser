@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Publishes index.html to the gh-pages branch (which contains only index.html and .nojekyll).
+# Publishes index.html to the gh-pages branch: the latest version at the root, and a copy of
+# every published version under v/<version>/ (with a list at v/), so earlier versions stay reachable.
 # Usage: scripts/deploy-pages.sh
 set -euo pipefail
 
@@ -20,9 +21,26 @@ else
   git -C "$tmp" rm -rf --quiet . || true
 fi
 
-find "$tmp" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+version="$(grep -oE "const VERSION='[^']+'" index.html | cut -d"'" -f2)"
+[ -n "$version" ] || { echo "VERSION not found in index.html" >&2; exit 1; }
+
+# keep v/ (earlier versions), replace everything else
+find "$tmp" -mindepth 1 -maxdepth 1 ! -name .git ! -name v -exec rm -rf {} +
 cp index.html "$tmp/index.html"
 touch "$tmp/.nojekyll"
+mkdir -p "$tmp/v/$version"
+cp index.html "$tmp/v/$version/index.html"
+
+# list of versions, newest first
+{
+  echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
+  echo '<title>Breathanalyser versions</title><style>body{font:15px/1.6 system-ui,sans-serif;margin:40px auto;max-width:520px;padding:0 16px}</style></head><body>'
+  echo '<h1>Breathanalyser versions</h1><p><a href="../">Latest version</a> · <a href="https://github.com/jonasprobst/rel-breathanalyser/releases">Downloads and release notes</a></p><ul>'
+  for d in $(ls -1 "$tmp/v" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -t. -k1,1nr -k2,2nr -k3,3nr); do
+    echo "<li><a href=\"$d/\">v$d</a></li>"
+  done
+  echo '</ul></body></html>'
+} > "$tmp/v/index.html"
 
 git -C "$tmp" add -A
 if git -C "$tmp" diff --cached --quiet; then
@@ -30,9 +48,9 @@ if git -C "$tmp" diff --cached --quiet; then
   exit 0
 fi
 if [ -n "${DEPLOY_COMMIT_TRAILERS:-}" ]; then   # optional extra lines, e.g. co-author trailers
-  git -C "$tmp" commit -m "Deploy index.html from main@${src_commit}" -m "$DEPLOY_COMMIT_TRAILERS"
+  git -C "$tmp" commit -m "Deploy v${version} from main@${src_commit}" -m "$DEPLOY_COMMIT_TRAILERS"
 else
-  git -C "$tmp" commit -m "Deploy index.html from main@${src_commit}"
+  git -C "$tmp" commit -m "Deploy v${version} from main@${src_commit}"
 fi
 git -C "$tmp" push origin gh-pages
-echo "Published. Site: https://jonasprobst.github.io/rel-breathanalyser/"
+echo "Published v${version}. Site: https://jonasprobst.github.io/rel-breathanalyser/ (this version also at v/${version}/)"

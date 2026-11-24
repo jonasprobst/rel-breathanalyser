@@ -1,127 +1,127 @@
 # Breathanalyser
 
-Count breaths in respiratory plethysmography recordings, check every breath by eye, split the recording into phases and export breaths per minute for each phase.
+Count, check and export breaths per minute from respiratory plethysmography recordings.
 
 **Open the app:** https://jonasprobst.github.io/rel-breathanalyser/
 
-It runs entirely in your web browser. Recordings are **not uploaded** anywhere; nothing leaves your computer.
+Runs in your web browser. Recordings are **not uploaded**: nothing leaves your computer.
 
-![Overview, detail plot and results](docs/screenshot.png)
+![Breathanalyser with a recording loaded](docs/screenshot.png)
 
----
+## Quick start
 
-## Quick start (5 minutes)
+1. **Load** a `.wav` recording: drop it on the page or click *Choose file*.
+2. **Check the channel** next to the file name. It must be the breathing belt.
+3. **Check the breaths** in the *Detail* plot. Scroll through the recording and look closely at the **orange** marks.
+   - Click a mark → remove a wrong breath (click again to restore).
+   - Click a hollow ▽ → count it.
+   - Click anywhere else → add a missed breath (snaps to the nearest peak; hold **Alt/Option** to place it exactly).
+4. **Mark phases**: drag across the overview or the detail plot. Rename them and fine-tune times in the table (`m:ss` or seconds).
+5. **Export** the results CSV (one row per phase) and, if needed, the breaths CSV (one row per breath).
 
-1. **Open the app** and choose your `.wav` recording (or drag it onto the page).
-2. **Check the channel.** Multi-channel files show a channel selector at the top. The app remembers the last channel you used.
-3. **Validate the breaths** in the detail plot (middle):
-   - Press **Next unclear ▶** (or the `N` key) to jump to the next doubtful breath.
-   - **Click a mark** to remove a wrong breath (click again to restore it).
-   - **Click a hollow ▽** to count a breath the detector was unsure about.
-   - **Click anywhere else** to add a missed breath. It snaps to a peak within ±0.25 s; hold **Alt/Option** to place it exactly.
-4. **Mark your phases** by dragging across the overview (top) or the detail plot. Rename them and fine-tune start/end times in the table at the bottom (type `m:ss` or seconds).
-5. **Export:** *Export results CSV* (one row per phase) and, if needed, *Export breaths CSV* (one row per breath).
-6. **Save session** to keep your edits and phases as a `.json` file. *Load session* restores them later or on another computer.
+Your work is saved automatically in this browser. To keep it elsewhere, use **Session → Save** (bottom of *Phases and results*).
 
-## The screen
-
-| Area | What it shows | What you can do |
-|---|---|---|
-| **Overview** | The whole recording (filtered), phases as coloured bands, black box = what the detail plot shows | Drag = new phase · click = jump there · wheel = zoom · Shift + wheel = pan · −/+/Fit buttons |
-| **Breath rate** | Grey dots = 60 / interval between two breaths; black line = breaths counted in a rolling 60 s; dashed = phase average | Click = jump there |
-| **Detail plot** | The signal with every detected breath (filtered, or raw: see below) | Click to edit breaths, drag to create a phase · wheel = scroll · Ctrl/⌘ + wheel = zoom · ← → keys · **Signal** button or `R` = filtered/raw |
-| **Phases and results** | One row per phase plus the whole recording | Rename, edit times, view, delete, export |
-
-### Breath marks
+## Breath marks
 
 | Mark | Meaning |
 |---|---|
-| ▼ red | Breath detected automatically |
-| ▼ orange | Breath detected, but close to the size threshold (please check) |
-| ▽ orange outline | Possible breath just below the threshold, **not counted** unless you click it |
+| ▼ blue | Breath, detected automatically |
+| ▼ orange | Breath, but close to the size threshold: **please check** |
+| ▽ orange | Possible breath just below the threshold, **not counted** unless you click it |
 | ▼ green | Breath you added |
-| ✕ grey | Breath you removed (click to restore) |
+| ✕ grey | Breath you removed |
 
-### Filtered or raw signal
+![Detail plot with breath marks](docs/detail.png)
 
-The detail plot normally shows the **filtered** signal: slow drift and fast noise are removed, and this is the signal the breaths are detected on. Press the **Signal** button (or the `R` key) to see the **raw** signal instead: the original samples of the selected channel, exactly as stored in the file, at the full sampling rate and without any filtering or averaging. Use it when you doubt a breath and want to see what the recording really looked like, e.g. to tell a movement spike or a drifting belt from a breath.
-
-- The breath marks stay at the same times in both views, and you can add and remove breaths in either.
-- Detection, the snapping of added breaths, results and exports always use the filtered signal. Switching the view never changes a result.
-- Each view has its own vertical scale, fitted to what is visible. Zoomed far out, the raw view draws the lowest and highest value per pixel, so short spikes stay visible.
-
-## Results columns
+## Results
 
 | Column | Meaning |
 |---|---|
-| **Breaths /min** | Number of breaths in the phase ÷ phase duration in minutes |
-| **Median /min** | 60 ÷ median interval between consecutive breaths. Robust against a single missed or extra breath. Needs at least 4 breaths |
-| **Breaths** | Number of breaths in the phase (a breath belongs to the phase its peak falls in) |
-| **Longest gap (s)** | Longest interval between two breaths, e.g. breath-holding or a pause |
-| **Interval SD (s)** | Standard deviation of the intervals between breaths: breathing regularity |
-| **Unclear** | Breaths near the size threshold in this phase, worth checking by eye |
-| **Edits** | Breaths you added or removed in this phase |
+| **Breaths /min** | Breaths in the phase ÷ phase duration in minutes |
+| **Median /min** | 60 ÷ median interval between breaths. Robust against one missed or extra breath. Needs ≥ 4 breaths |
+| **Breaths** | Number of breaths (a breath belongs to the phase its peak falls in) |
+| **Longest gap (s)** | Longest interval between two breaths, e.g. breath-holding |
+| **Interval SD (s)** | Standard deviation of the intervals: breathing regularity |
+| **Unclear** | Orange marks in this phase, worth a look |
+| **Edits** | Breaths you added or removed |
 
-Short phases give unstable rates: 30 s at 12 breaths/min is only 6 breaths, so one error changes the rate by 2/min. Always report the breath count together with the rate.
-
-## Blind review
-
-Turn on **Blind review** (top of the page) to hide all phases and results while validating breaths. The person checking breaths then can't be influenced by knowing which stretch belongs to which condition. Turn it off to see the results. Phases can't be created while blind review is on.
-
-## Several recordings
-
-1. Set the **Subject ID** (defaults to the file name).
-2. When a recording is finished, click **Add to combined results**.
-3. Repeat for each recording, then **Export combined CSV (n)** for one file with all subjects.
-
-The combined list is kept in this browser only. Export it regularly, and keep each recording's own results CSV as the safe copy. If recordings were analysed with different detection settings, the app warns you on export.
+- If *Breaths /min* and *Median /min* differ a lot, the phase is irregular or contains errors: check it.
+- Short phases give unstable rates: 30 s at 12/min is only 6 breaths. Report the count with the rate.
+- The small number in the top-right corner of the detail plot is the rate of the visible window.
 
 ## Exported files
 
-**`<file>_results.csv`**: one row for the whole recording and one per phase:
-`subject_id, file, channel, phase, start_s, end_s, duration_s, breaths, bpm_count, bpm_median_interval, longest_interval_s, interval_sd_s, unclear, manual_edits`, followed by the detection settings (`set_…`) and `tool_version`, so every result documents how it was produced.
+| File | Content |
+|---|---|
+| `<file>_results.csv` | One row for the whole recording and one per phase: the results columns above, plus subject ID, file, channel, the detection settings (`set_…`) and the app version |
+| `<file>_breaths.csv` | One row per breath: time, `auto`/`manual`, unclear (0/1), phase |
+| `<file>_session.json` | Your phases, edits, settings and channel. Open it again with *Session → Load* |
 
-**`<file>_breaths.csv`**: one row per breath: `subject_id, time_s, source (auto/manual), unclear (0/1), phase`.
+Several recordings: set the **Subject ID** for each and stack the results files. Every row carries subject, file, settings and version.
 
-**`<file>_session.json`**: phases, your manual edits, settings and channel. Load it again with *Load session*.
+**In R** the CSVs open with plain `read.csv()`, also on Windows, no options needed:
 
-## Detection settings
+```r
+res <- read.csv("horse1_results.csv")
+all <- do.call(rbind, lapply(list.files(pattern = "_results\\.csv$"), read.csv))  # all recordings
+```
 
-Under *Detection settings* at the bottom. The defaults were tuned on a resting, standing horse (about 8–30 breaths/min). Your manual edits are kept when you change settings.
+Missing values are `NA`. Accents in names are written without them (`ä` → `ae`) so every R version reads them correctly.
 
-| Setting | Default | What it does |
+## Mouse and keys
+
+| | Overview / rate graph | Detail plot |
 |---|---|---|
-| Min breath size | 35 % | A peak counts as a breath only if its rise is at least this share of the typical breath height around it (last/next 15 s) |
-| Min time between breaths | 1.2 s | Two peaks closer than this are one breath (the higher one wins). Limits the maximum rate to about 50/min |
-| Unclear band | ± 10 % | Peaks within this distance of the size threshold are marked orange / ▽ for review |
-| High-pass | 0.05 Hz | Removes slow drift of the belt signal. Slowest countable rate ≈ 3/min |
-| Low-pass | 1.0 Hz | Removes fast noise. Highest countable rate ≈ 60/min |
-| Typical-size window | 30 s | Window used to judge what a "typical" breath looks like |
-| Skip start | 0 s | Ignore the beginning of the recording, e.g. while the belt settles |
+| Click | Jump there | Add / remove a breath |
+| Drag | New phase (overview) | New phase |
+| Mouse wheel | Zoom | Scroll |
+| Shift + wheel | Scroll | |
+| Ctrl/⌘ + wheel | | Zoom |
+| Buttons | 🔍 zoom, *Fit* | ◀ ▶ scroll, 🔍 zoom, *Window* length |
+| Keys | | ← → scroll, `R` raw/filtered signal |
 
-**For faster breathing** (foals, after exercise, other species): raise *Low-pass* (e.g. 2–3 Hz) and lower *Min time between breaths* (e.g. 0.4–0.6 s). Always check a few minutes by eye after changing settings, and use the same settings for all recordings of a study.
+- Phase start and end snap to round times (1–30 s, depending on zoom). Hold **Alt/Option** for exact times.
+- Click a phase in the table to show it in the detail plot. The bin icon deletes it.
+- The detail plot's height stays steady while you scroll. It re-fits when you zoom or jump.
 
-## Supported files
+## Settings
 
-- `.wav` (RIFF/WAVE), PCM 8/16/24/32-bit or 32/64-bit float, any number of channels, any sampling rate.
-- The selected channel is averaged down to 20 samples per second before analysis, which is plenty for breathing.
-- Large files work (tested with 12 channels × 28 min at 4410 Hz, 177 MB).
+Under *Settings* at the bottom of the page.
 
-## Use it offline
+- **Raw signal**: show the original, unfiltered samples in the detail plot (key `R`), e.g. to tell a movement spike from a breath. Breaths are always detected on the filtered signal; switching never changes a result.
+- **Blind review**: hides phases and results while you check breaths, so you can't be influenced by knowing which stretch is which condition.
+- **Detection**: changes how breaths are found. Your manual edits are kept. Use the same settings for all recordings of a study.
 
-Download [`index.html`](index.html) from this repository and open it in your browser. Everything works the same without internet.
+| Detection setting | Default | What it does |
+|---|---|---|
+| Min breath size | 35 % | A peak counts only if its rise is at least this share of the typical breath height nearby |
+| Min time between breaths | 1.2 s | Closer peaks count as one breath. Caps the rate at about 50/min |
+| Unclear band | ± 10 % | Peaks this close to the threshold are marked orange / ▽ |
+| High-pass | 0.05 Hz | Removes slow drift. Slowest rate ≈ 3/min |
+| Low-pass | 1.0 Hz | Removes fast noise. Fastest rate ≈ 60/min |
+| Typical-size window | 30 s | Stretch used to judge a "typical" breath |
+| Skip start | 0 s | Ignore the beginning, e.g. while the belt settles |
 
-## Limitations
+Defaults were tuned on a resting, standing horse (about 8–30 breaths/min). **Faster breathing** (foals, exercise, small animals): raise *Low-pass* to 2–3 Hz and lower *Min time between breaths* to 0.4–0.6 s, then check a few minutes by eye.
 
-- Counts breaths from **one** belt signal. It doesn't measure tidal volume, chest/abdomen synchrony or inspiration/expiration timing.
-- There is **no automatic movement detection**. Movement, sniffing, chewing and similar disturbances must be judged by eye.
-- Detection is a support tool. The validated result is what you check and correct.
-- Saved edits and the combined list live in your browser's storage. Use *Save session* and the CSV exports as your permanent record.
+**Start over** on a file: *Session → Clear*. This deletes all phases, edits, the subject ID and settings for that file and can't be undone.
+
+## Offline use and versions
+
+- **Offline:** click *download for offline use* at the bottom of the app. Copy the file (e.g. `breathanalyser-v1.2.0.html`) to the lab computer and double-click it.
+- **Version:** shown at the bottom of the app and in every results row.
+- **Earlier versions:** https://jonasprobst.github.io/rel-breathanalyser/v/ keeps every version online. If a new version changes your results, reopen the one you used before. Downloads and change notes: [Releases](https://github.com/jonasprobst/rel-breathanalyser/releases).
+
+## Good to know
+
+- Files: `.wav`, any number of channels and sampling rate (PCM 8–32 bit or float). Large files work (tested 177 MB).
+- Counts breaths from **one** belt signal. No tidal volume or inspiration/expiration timing.
+- **No movement detection**: judge movement, sniffing and chewing by eye.
+- The detector is a support tool. The validated result is what you checked.
+- Saved work lives in this browser only. Keep the CSV exports (and saved sessions) as your record.
 
 ## Questions, bugs, ideas
 
-Open an issue in this repository. Developer documentation is in [`docs/`](docs/).
-
-## License
+Open an [issue](https://github.com/jonasprobst/rel-breathanalyser/issues). Developer documentation: [`docs/`](docs/).
 
 [MIT](LICENSE) © 2026 Jonas Probst
