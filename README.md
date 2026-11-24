@@ -50,7 +50,7 @@ The colours are chosen to stay distinguishable for colour-blind viewers.
 
 ### Height scale of the detail plot
 
-The vertical scale stays fixed while you scroll (wheel, ← → keys, ◀ ▶), so the trace doesn't jump. It re-fits when you zoom, when you jump somewhere (*Next unclear*, clicking the overview or rate graph, *View* on a phase) and when you switch between filtered and raw. The fit uses the visible window plus one window on either side, ignoring extreme spikes, so very large peaks can run off the top; zoom or jump to re-fit.
+The vertical scale stays steady while you scroll (wheel, ← → keys, ◀ ▶), so the trace doesn't jump. It only grows when something would otherwise be cut off, e.g. a large spike scrolling into view; the signal is never cut. It re-fits to exactly what is visible when you zoom, when you jump somewhere (*Next unclear*, clicking the overview or rate graph, *View* on a phase) and when you switch between filtered and raw. A large spike makes the breaths around it look smaller; zoom in or jump on to see them full size again.
 
 ### Filtered or raw signal
 
@@ -58,7 +58,7 @@ The detail plot normally shows the **filtered** signal: slow drift and fast nois
 
 - The breath marks stay at the same times in both views, and you can add and remove breaths in either.
 - Detection, the snapping of added breaths, results and exports always use the filtered signal. Switching the view never changes a result.
-- Each view has its own vertical scale. In the raw view the scale also re-fits when the signal drifts out of view. Zoomed far out, the raw view draws the lowest and highest value per pixel, so short spikes stay visible.
+- Each view has its own vertical scale. In the raw view the scale also re-fits when the signal's offset drifts far while scrolling. Zoomed far out, the raw view draws the lowest and highest value per pixel, so short spikes stay visible.
 
 ## Results columns
 

@@ -100,7 +100,7 @@
         </div>
       </div>
       <canvas id="det" height="320"></canvas>
-      <div class="muted" style="margin-top:6px">Click a mark to remove it (click again to restore). Click a ▽ to count it. Click anywhere else to add a breath; it snaps to a high within ±0.25 s if there is one (hold Alt/Option to place it exactly). Drag across the plot to create a phase. The height scale stays fixed while you scroll and re-fits when you zoom or jump. “Signal” (or the R key) switches to the raw, unfiltered recording to inspect the original data; breaths are always detected on the filtered signal.</div>
+      <div class="muted" style="margin-top:6px">Click a mark to remove it (click again to restore). Click a ▽ to count it. Click anywhere else to add a breath; it snaps to a high within ±0.25 s if there is one (hold Alt/Option to place it exactly). Drag across the plot to create a phase. The height scale stays steady while you scroll (it only grows if the signal would be cut off) and re-fits when you zoom or jump. “Signal” (or the R key) switches to the raw, unfiltered recording to inspect the original data; breaths are always detected on the filtered signal.</div>
     </div>
 
     <div class="card">
@@ -423,11 +423,17 @@ function drawDetail(){
   // raw view: original samples of the visible window (min/max per pixel when dense), cached while the window stays the same
   let raw=null;
   if(showRaw&&W){const nb=Math.max(1,Math.floor(w-L-R)),k=[fileName,fileSize,chan,t0,t1,nb].join('|');if(rawC.k!==k)rawC={k,r:readChannelRange(W,chan,t0,t1,nb)};raw=rawC.r;}
-  // vertical scale: kept fixed while scrolling (ys), re-fitted on zoom, jumps, raw/filtered switch and re-analysis
+  // vertical scale: fitted to everything visible on zoom, jumps, raw/filtered switch and re-analysis (ys=null);
+  // while scrolling it only grows when the trace would be cut off, so it stays steady and never hides anything
+  let vlo=Infinity,vhi=-Infinity;
+  if(raw)for(let k=0;k<raw.t.length;k++){if(raw.lo[k]<vlo)vlo=raw.lo[k];if(raw.hi[k]>vhi)vhi=raw.hi[k];}
+  else for(let i=i0;i<=i1;i++){if(D.z[i]<vlo)vlo=D.z[i];if(D.z[i]>vhi)vhi=D.z[i];}
+  if(!isFinite(vlo)){vlo=0;vhi=0;}
+  if(!(vhi>vlo)){vlo-=1;vhi+=1;}
   if(ys&&ys.raw!==!!raw)ys=null;
-  if(ys){let m=0,n=0;if(raw)for(let k=0;k<raw.t.length;k++){m+=raw.lo[k]+raw.hi[k];n+=2;}else for(let i=i0;i<=i1;i++){m+=D.z[i];n++;}
-    m/=n||1;if(!(m>ys.lo&&m<ys.hi))ys=null;}   // trace drifted out of view (raw offset): re-fit
-  if(!ys)ys=detailScale(raw,w);
+  if(raw&&ys&&ys.dhi-ys.dlo>4*(vhi-vlo))ys=null;   // raw offset drifted far while scrolling: re-fit instead of squashing
+  if(!ys)ys={raw:!!raw,dlo:vlo,dhi:vhi};else{ys.dlo=Math.min(ys.dlo,vlo);ys.dhi=Math.max(ys.dhi,vhi);}
+  {const pad=(ys.dhi-ys.dlo)*.12;ys.lo=ys.dlo-pad;ys.hi=ys.dhi+pad*1.6;}
   const lo=ys.lo,hi=ys.hi,Yp=v=>4+(hi-v)/(hi-lo)*(h-B0-8);
   visPhases().forEach((p,k)=>{if(p.b<t0||p.a>t1)return;g.fillStyle=COLORS[k%COLORS.length]+'14';g.fillRect(X(Math.max(p.a,t0)),2,X(Math.min(p.b,t1))-X(Math.max(p.a,t0)),h-B0-2);
     g.fillStyle=COLORS[k%COLORS.length];g.font='12px system-ui';g.textAlign='left';
@@ -456,16 +462,6 @@ function drawDetail(){
     g.fillStyle='#1f2937';g.font='12px system-ui';g.textAlign='left';g.fillText(blind?'Phases are hidden in blind review':`${fmtT(Math.min(ddrag.a,ddrag.b))} – ${fmtT(Math.max(ddrag.a,ddrag.b))}`,X(Math.min(ddrag.a,ddrag.b))+4,h-B0-8);}
   const st=phaseStats(D,B,E,P,Math.max(t0,D.s0/D.f),Math.min(t1,D.dur));
   $('viewInfo').textContent=`${fmtT(t0)} – ${fmtT(t1)} · ${st.n} breaths in window (${isFinite(st.bpm)?st.bpm.toFixed(1):'–'}/min)`;
-}
-// fit the detail plot's height to a wider stretch (one window either side), ignoring the most extreme 0.5 % at each end (spikes)
-function detailScale(raw,w){
-  const a=Math.max(0,view-span),b=Math.min(D.dur,view+2*span),v=[];
-  if(raw){const r=readChannelRange(W,chan,a,b,Math.max(1,3*Math.floor(w-L-R)));for(let k=0;k<r.t.length;k++){v.push(r.lo[k]);if(r.hi!==r.lo)v.push(r.hi[k]);}}
-  else for(let i=Math.max(0,Math.floor(a*D.f));i<=Math.min(D.n-1,Math.ceil(b*D.f));i++)v.push(D.z[i]);
-  v.sort((x,y)=>x-y);
-  let lo=v.length?quant(v,.005):0,hi=v.length?quant(v,.995):0;
-  if(!(hi>lo)){lo-=1;hi+=1;}const pad=(hi-lo)*.12;
-  return {raw:!!raw,lo:lo-pad,hi:hi+pad*1.6};
 }
 const SNAP=0.25;
 function detailClick(e){
